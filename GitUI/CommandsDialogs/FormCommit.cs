@@ -886,8 +886,9 @@ namespace GitUI.CommandsDialogs
                 var args = new GitArgumentBuilder("apply")
                 {
                     "--cached",
+                    "--index",
                     "--whitespace=nowarn",
-                    { _currentItemStaged,  "--reverse" }
+                    { _currentItemStaged, "--reverse" }
                 };
 
                 string output = Module.GitExecutable.GetOutput(args, patch);
@@ -962,7 +963,7 @@ namespace GitUI.CommandsDialogs
                 var args = new GitArgumentBuilder("apply")
                 {
                     "--whitespace=nowarn",
-                    { _currentItemStaged,  "--reverse --index" }
+                    { _currentItemStaged, "--reverse --index" }
                 };
 
                 string output = Module.GitExecutable.GetOutput(args, patch);

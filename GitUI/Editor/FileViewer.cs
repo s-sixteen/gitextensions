@@ -1486,6 +1486,7 @@ namespace GitUI.Editor
             var args = new GitArgumentBuilder("apply")
             {
                 "--3way",
+                "--index",
                 "--whitespace=nowarn"
             };
 
