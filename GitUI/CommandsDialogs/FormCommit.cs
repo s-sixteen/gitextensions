@@ -95,8 +95,6 @@ namespace GitUI.CommandsDialogs
         private readonly TranslationString _onlyStageChunkOfSingleFileError =
             new TranslationString("You can only use this option when selecting a single file");
 
-        private readonly TranslationString _resetChangesCaption = new TranslationString("Reset changes");
-
         private readonly TranslationString _resetSelectedChangesText =
             new TranslationString("Are you sure you want to reset all selected files?");
 
@@ -106,10 +104,6 @@ namespace GitUI.CommandsDialogs
         private readonly TranslationString _selectOnlyOneFile = new TranslationString("You must have only one file selected.");
 
         private readonly TranslationString _addSelectionToCommitMessage = new TranslationString("Add selection to commit message");
-        private readonly TranslationString _stageSelectedLines = new TranslationString("Stage selected line(s)");
-        private readonly TranslationString _unstageSelectedLines = new TranslationString("Unstage selected line(s)");
-        private readonly TranslationString _resetSelectedLines = new TranslationString("Reset selected line(s)");
-        private readonly TranslationString _resetSelectedLinesConfirmation = new TranslationString("Are you sure you want to reset the changes to the selected lines?");
 
         private readonly TranslationString _formTitle = new TranslationString("Commit to {0} ({1})");
 
@@ -931,7 +925,7 @@ namespace GitUI.CommandsDialogs
                 return;
             }
 
-            if (MessageBox.Show(this, _resetSelectedLinesConfirmation.Text, _resetChangesCaption.Text,
+            if (MessageBox.Show(this, Strings.ResetSelectedLinesConfirmation, Strings.ResetChangesCaption,
                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.No)
             {
                 return;
@@ -2097,7 +2091,7 @@ namespace GitUI.CommandsDialogs
 
                 if (!string.IsNullOrEmpty(output.ToString()))
                 {
-                    MessageBox.Show(this, output.ToString(), _resetChangesCaption.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(this, output.ToString(), Strings.ResetChangesCaption, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             finally
@@ -2168,7 +2162,7 @@ namespace GitUI.CommandsDialogs
 
         private void ResetSelectedFilesToolStripMenuItemClick(object sender, EventArgs e)
         {
-            if (MessageBox.Show(this, _resetSelectedChangesText.Text, _resetChangesCaption.Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) !=
+            if (MessageBox.Show(this, _resetSelectedChangesText.Text, Strings.ResetChangesCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Question) !=
                 DialogResult.Yes)
             {
                 return;

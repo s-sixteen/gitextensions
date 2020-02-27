@@ -42,6 +42,14 @@ namespace GitUI
         private readonly TranslationString _errorCaptionFailedDeleteFile = new TranslationString("Failed to delete file");
         private readonly TranslationString _errorCaptionFailedDeleteFolder = new TranslationString("Failed to delete directory");
 
+        private readonly TranslationString _stageSelectedLines = new TranslationString("Stage selected line(s)");
+        private readonly TranslationString _unstageSelectedLines = new TranslationString("Unstage selected line(s)");
+        private readonly TranslationString _resetSelectedLines = new TranslationString("Reset selected line(s)");
+        private readonly TranslationString _cherrypickSelectedLines = new TranslationString("Cherry pick selected line(s)");
+        private readonly TranslationString _revertSelectedLines = new TranslationString("Revert selected line(s)");
+        private readonly TranslationString _resetSelectedLinesConfirmation = new TranslationString("Are you sure you want to reset the changes to the selected lines?");
+        private readonly TranslationString _resetChangesCaption = new TranslationString("Reset changes");
+
         // public only because of FormTranslate
         public Strings()
         {
@@ -99,5 +107,12 @@ namespace GitUI
 
         public static string ErrorCaptionFailedDeleteFile => _instance.Value._errorCaptionFailedDeleteFile.Text;
         public static string ErrorCaptionFailedDeleteFolder => _instance.Value._errorCaptionFailedDeleteFolder.Text;
+        public static string StageSelectedLines => _instance.Value._stageSelectedLines.Text;
+        public static string UnstageSelectedLines => _instance.Value._unstageSelectedLines.Text;
+        public static string ResetSelectedLines => _instance.Value._resetSelectedLines.Text;
+        public static string CherrypickSelectedLines => _instance.Value._cherrypickSelectedLines.Text;
+        public static string RevertSelectedLines => _instance.Value._revertSelectedLines.Text;
+        public static string ResetSelectedLinesConfirmation => _instance.Value._resetSelectedLinesConfirmation.Text;
+        public static string ResetChangesCaption => _instance.Value._resetChangesCaption.Text;
     }
 }
