@@ -152,8 +152,6 @@ namespace GitUI.CommandsDialogs
         private readonly ICommitTemplateManager _commitTemplateManager;
         [CanBeNull] private readonly GitRevision _editedCommit;
         private readonly ToolStripMenuItem _addSelectionToCommitMessageToolStripMenuItem;
-        private readonly ToolStripMenuItem _stageSelectedLinesToolStripMenuItem;
-        private readonly ToolStripMenuItem _resetSelectedLinesToolStripMenuItem;
         private readonly AsyncLoader _unstagedLoader = new AsyncLoader();
         private readonly bool _useFormCommitMessage = AppSettings.UseFormCommitMessage;
         private readonly CancellationTokenSequence _interactiveAddSequence = new CancellationTokenSequence();
@@ -243,17 +241,16 @@ namespace GitUI.CommandsDialogs
             stagedOpenToolStripMenuItem7.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.OpenFile);
             stagedOpenWithToolStripMenuItem8.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.OpenFileWith);
             stagedEditFileToolStripMenuItem11.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.EditFile);
+            resetChanges.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.ResetSelectedFiles);
+            stagedResetChanges.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.StageSelectedFile);
+
+            SelectedDiff.CherryPickContextMenuEntry_OverrideClick(StageSelectedLinesToolStripMenuItemClick, ResetSelectedLinesToolStripMenuItemClick);
+            SelectedDiff.RevertSelectedContextMenuEntry_Update(Strings.ResetSelectedLines, Reset.Image, resetChanges.ShortcutKeyDisplayString);
 
             SelectedDiff.AddContextMenuSeparator();
-            _stageSelectedLinesToolStripMenuItem = SelectedDiff.AddContextMenuEntry(_stageSelectedLines.Text, StageSelectedLinesToolStripMenuItemClick);
-            _stageSelectedLinesToolStripMenuItem.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.StageSelectedFile);
-            _resetSelectedLinesToolStripMenuItem = SelectedDiff.AddContextMenuEntry(_resetSelectedLines.Text, ResetSelectedLinesToolStripMenuItemClick);
-            _resetSelectedLinesToolStripMenuItem.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.ResetSelectedFiles);
-            _resetSelectedLinesToolStripMenuItem.Image = Reset.Image;
             _addSelectionToCommitMessageToolStripMenuItem = SelectedDiff.AddContextMenuEntry(_addSelectionToCommitMessage.Text, (s, e) => AddSelectionToCommitMessage());
             _addSelectionToCommitMessageToolStripMenuItem.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.AddSelectionToCommitMessage);
-            resetChanges.ShortcutKeyDisplayString = _resetSelectedLinesToolStripMenuItem.ShortcutKeyDisplayString;
-            stagedResetChanges.ShortcutKeyDisplayString = _resetSelectedLinesToolStripMenuItem.ShortcutKeyDisplayString;
+
             deleteFileToolStripMenuItem.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.DeleteSelectedFiles);
             viewFileHistoryToolStripItem.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.ShowHistory);
             stagedFileHistoryToolStripMenuItem6.ShortcutKeyDisplayString = GetShortcutKeyDisplayString(Command.ShowHistory);
@@ -560,15 +557,14 @@ namespace GitUI.CommandsDialogs
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
-        private void SelectedDiff_ContextMenuOpening(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            _stageSelectedLinesToolStripMenuItem.Enabled = SelectedDiff.HasAnyPatches() || (_currentItem != null && _currentItem.IsNew);
-            _resetSelectedLinesToolStripMenuItem.Enabled = _stageSelectedLinesToolStripMenuItem.Enabled;
-        }
-
         private void SelectedDiff_TextLoaded(object sender, EventArgs e)
         {
             _selectedDiffReloaded = true;
+            if (_currentItem != null && _currentItem.IsNew)
+            {
+                SelectedDiff.CherryPickContextMenuEntry_Visible();
+                SelectedDiff.RevertSelectedContextMenuEntry_Visible();
+            }
         }
 
         #region Hotkey commands
@@ -681,7 +677,7 @@ namespace GitUI.CommandsDialogs
                 ResetSoftClick(this, null);
                 return true;
             }
-            else if (SelectedDiff.ContainsFocus && _resetSelectedLinesToolStripMenuItem.Enabled)
+            else if (SelectedDiff.ContainsFocus && SelectedDiff.SupportLinePatching)
             {
                 ResetSelectedLinesToolStripMenuItemClick(this, null);
                 return true;
@@ -697,7 +693,7 @@ namespace GitUI.CommandsDialogs
                 StageClick(this, null);
                 return true;
             }
-            else if (SelectedDiff.ContainsFocus && !_currentItemStaged && _stageSelectedLinesToolStripMenuItem.Enabled)
+            else if (SelectedDiff.ContainsFocus && !_currentItemStaged && SelectedDiff.SupportLinePatching)
             {
                 StageSelectedLinesToolStripMenuItemClick(this, null);
                 return true;
@@ -713,7 +709,7 @@ namespace GitUI.CommandsDialogs
                 UnstageFilesClick(this, null);
                 return true;
             }
-            else if (SelectedDiff.ContainsFocus && _currentItemStaged && _stageSelectedLinesToolStripMenuItem.Enabled)
+            else if (SelectedDiff.ContainsFocus && _currentItemStaged && SelectedDiff.SupportLinePatching)
             {
                 StageSelectedLinesToolStripMenuItemClick(this, null);
                 return true;
@@ -1219,12 +1215,18 @@ namespace GitUI.CommandsDialogs
                 _selectedDiffReloaded = true;
             }).FileAndForget();
 
-            _stageSelectedLinesToolStripMenuItem.Text = staged ? _unstageSelectedLines.Text : _stageSelectedLines.Text;
-            _stageSelectedLinesToolStripMenuItem.Image = staged ? toolUnstageItem.Image : toolStageItem.Image;
-            _stageSelectedLinesToolStripMenuItem.ShortcutKeyDisplayString =
-                GetShortcutKeyDisplayString(staged ? Command.UnStageSelectedFile : Command.StageSelectedFile);
-
-            return;
+            if (staged)
+            {
+                SelectedDiff.CherryPickContextMenuEntry_Update(Strings.UnstageSelectedLines,
+                    toolUnstageItem.Image,
+                    GetShortcutKeyDisplayString(Command.UnStageSelectedFile));
+            }
+            else
+            {
+                SelectedDiff.CherryPickContextMenuEntry_Update(Strings.StageSelectedLines,
+                    toolStageItem.Image,
+                    GetShortcutKeyDisplayString(Command.StageSelectedFile));
+            }
         }
 
         private async Task SetSelectedDiffAsync(GitItemStatus item, bool staged)
