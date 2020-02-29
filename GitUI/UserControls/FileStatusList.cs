@@ -287,14 +287,6 @@ namespace GitUI
         [DefaultValue(true)]
         public bool IsEmpty => GitItemStatuses == null || !GitItemStatuses.Any();
 
-        /// <summary>
-        /// Gets or sets the revision.
-        /// </summary>
-        /// <value>The revision.</value>
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        [Browsable(false)]
-        public GitRevision Revision { get; set; }
-
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Browsable(false)]
         public int SelectedIndex
@@ -615,7 +607,6 @@ namespace GitUI
             var tuples =
                 new List<(GitRevision parentRev, GitRevision selectedRev, string summary, IReadOnlyList<GitItemStatus> statuses)>();
             var selectedRev = revisions.FirstOrDefault();
-            Revision = selectedRev;
             if (selectedRev == null)
             {
                 GitItemStatusesWithDescription = tuples;
@@ -739,10 +730,9 @@ namespace GitUI
 
         public void SetDiffs(GitRevision selectedRev = null, GitRevision parentRev = null, IReadOnlyList<GitItemStatus> items = null)
         {
-            Revision = selectedRev;
             GitItemStatusesWithDescription = items == null
                 ? Array.Empty<(GitRevision, GitRevision, string, IReadOnlyList<GitItemStatus>)>()
-                : new[] { (parentRev, Revision, _diffWithParent.Text + GetDescriptionForRevision(parentRev?.ObjectId), items) };
+                : new[] { (parentRev, selectedRev, _diffWithParent.Text + GetDescriptionForRevision(parentRev?.ObjectId), items) };
         }
 
         private string GetDescriptionForRevision(ObjectId objectId)

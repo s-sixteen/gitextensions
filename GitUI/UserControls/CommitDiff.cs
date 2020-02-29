@@ -74,15 +74,16 @@ namespace GitUI.UserControls
         // Partly the same as RevisionDiffControl.cs ShowSelectedFileDiffAsync()
         private async Task ViewSelectedDiffAsync()
         {
-            if (DiffFiles.SelectedItem == null || DiffFiles.Revision == null)
+            var item = DiffFiles.SelectedItemWithParent;
+            if (item?.SelectedRevision == null)
             {
                 DiffText.Clear();
                 return;
             }
 
-            if (DiffFiles.SelectedItemWithParent.ParentRevision?.ObjectId == ObjectId.CombinedDiffId)
+            if (item.ParentRevision?.ObjectId == ObjectId.CombinedDiffId)
             {
-                var diffOfConflict = Module.GetCombinedDiffContent(DiffFiles.Revision, DiffFiles.SelectedItem.Name,
+                var diffOfConflict = Module.GetCombinedDiffContent(item.SelectedRevision, item.Item.Name,
                     DiffText.GetExtraDiffArguments(), DiffText.Encoding);
 
                 if (string.IsNullOrWhiteSpace(diffOfConflict))
@@ -90,15 +91,14 @@ namespace GitUI.UserControls
                     diffOfConflict = Strings.UninterestingDiffOmitted;
                 }
 
-                await DiffText.ViewPatchAsync(DiffFiles.SelectedItem.Name,
+                await DiffText.ViewPatchAsync(item.Item.Name,
                     text: diffOfConflict,
                     openWithDifftool: null,
-                    isText: DiffFiles.SelectedItem.IsSubmodule);
+                    isText: item.Item.IsSubmodule);
 
                 return;
             }
 
-            var item = DiffFiles.SelectedItemWithParent;
             await DiffText.ViewChangesAsync(item.ParentRevision?.ObjectId, item.SelectedRevision, item.Item, string.Empty);
         }
     }

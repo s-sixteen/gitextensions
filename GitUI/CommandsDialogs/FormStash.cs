@@ -263,7 +263,7 @@ namespace GitUI.CommandsDialogs
             using (WaitCursorScope.Enter())
             {
                 var msg = toolStripButton_customMessage.Checked ? " " + StashMessage.Text.Trim() : string.Empty;
-                UICommands.StashSave(this, chkIncludeUntrackedFiles.Checked, StashKeepIndex.Checked, msg, Stashed.SelectedItems.Select(i => i.Name).ToList());
+                UICommands.StashSave(this, chkIncludeUntrackedFiles.Checked, StashKeepIndex.Checked, msg, Stashed.SelectedItemsWithParent.Select(i => i.Item.Name).ToList());
                 Initialize();
             }
         }
@@ -339,7 +339,7 @@ namespace GitUI.CommandsDialogs
 
         private void EnablePartialStash()
         {
-            StashSelectedFiles.Enabled = Stashes.SelectedIndex == 0 && Stashed.SelectedItems.Any();
+            StashSelectedFiles.Enabled = Stashes.SelectedIndex == 0 && Stashed.SelectedItemsWithParent.Any();
         }
 
         private void Stashes_DropDown(object sender, EventArgs e)
@@ -438,7 +438,7 @@ namespace GitUI.CommandsDialogs
 
         private void ContextMenuStripStashedFiles_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            cherryPickFileChangesToolStripMenuItem.Enabled = Stashed.SelectedItems.Count() == 1;
+            cherryPickFileChangesToolStripMenuItem.Enabled = Stashed.SelectedItemsWithParent.Count() == 1;
         }
     }
 }

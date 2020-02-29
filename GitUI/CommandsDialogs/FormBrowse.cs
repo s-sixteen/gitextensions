@@ -1940,13 +1940,13 @@ namespace GitUI.CommandsDialogs
 
         public static void CopyFullPathToClipboard(FileStatusList diffFiles, GitModule module)
         {
-            if (!diffFiles.SelectedItems.Any())
+            if (!diffFiles.SelectedItemsWithParent.Any())
             {
                 return;
             }
 
             var fileNames = new StringBuilder();
-            foreach (var item in diffFiles.SelectedItems)
+            foreach (var item in diffFiles.SelectedItemsWithParent)
             {
                 // Only use append line when multiple items are selected.
                 // This to make it easier to use the text from clipboard when 1 file is selected.
@@ -1955,7 +1955,7 @@ namespace GitUI.CommandsDialogs
                     fileNames.AppendLine();
                 }
 
-                fileNames.Append(Path.Combine(module.WorkingDir, item.Name).ToNativePath());
+                fileNames.Append(Path.Combine(module.WorkingDir, item.Item.Name).ToNativePath());
             }
 
             ClipboardUtil.TrySetText(fileNames.ToString());
@@ -2327,14 +2327,14 @@ namespace GitUI.CommandsDialogs
 
         public static void OpenContainingFolder(FileStatusList diffFiles, GitModule module)
         {
-            if (!diffFiles.SelectedItems.Any())
+            if (!diffFiles.SelectedItemsWithParent.Any())
             {
                 return;
             }
 
-            foreach (var item in diffFiles.SelectedItems)
+            foreach (var item in diffFiles.SelectedItemsWithParent)
             {
-                string filePath = Path.Combine(module.WorkingDir, item.Name.ToNativePath());
+                string filePath = Path.Combine(module.WorkingDir, item.Item.Name.ToNativePath());
                 FormBrowseUtil.ShowFileOrParentFolderInFileExplorer(filePath);
             }
         }

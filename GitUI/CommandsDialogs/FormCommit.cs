@@ -1244,7 +1244,7 @@ namespace GitUI.CommandsDialogs
 
         private void ClearDiffViewIfNoFilesLeft()
         {
-            if ((Staged.IsEmpty && Unstaged.IsEmpty) || (!Unstaged.SelectedItems.Any() && !Staged.SelectedItems.Any()))
+            if ((Staged.IsEmpty && Unstaged.IsEmpty) || (!Unstaged.SelectedItemsWithParent.Any() && !Staged.SelectedItemsWithParent.Any()))
             {
                 SelectedDiff.Clear();
             }
@@ -1599,7 +1599,7 @@ namespace GitUI.CommandsDialogs
 
             ClearDiffViewIfNoFilesLeft();
 
-            if (!Unstaged.SelectedItems.Any())
+            if (!Unstaged.SelectedItemsWithParent.Any())
             {
                 return;
             }
@@ -1623,13 +1623,13 @@ namespace GitUI.CommandsDialogs
         private void UnstagedFileContext_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
             // Do not show if no item selected
-            e.Cancel = !Unstaged.SelectedItems.Any() || Module.IsBareRepository();
+            e.Cancel = !Unstaged.SelectedItemsWithParent.Any() || Module.IsBareRepository();
 
-            var isTrackedSelected = Unstaged.SelectedItems.Any(s => s.IsTracked);
-            var isSkipWorktreeExist = Unstaged.SelectedItems.Any(s => s.IsSkipWorktree);
-            var isAssumeUnchangedExist = Unstaged.SelectedItems.Any(s => s.IsAssumeUnchanged);
-            var isAssumeUnchangedAll = Unstaged.SelectedItems.All(s => s.IsAssumeUnchanged);
-            var isSkipWorktreeAll = Unstaged.SelectedItems.All(s => s.IsSkipWorktree);
+            var isTrackedSelected = Unstaged.SelectedItemsWithParent.Any(s => s.Item.IsTracked);
+            var isSkipWorktreeExist = Unstaged.SelectedItemsWithParent.Any(s => s.Item.IsSkipWorktree);
+            var isAssumeUnchangedExist = Unstaged.SelectedItemsWithParent.Any(s => s.Item.IsAssumeUnchanged);
+            var isAssumeUnchangedAll = Unstaged.SelectedItemsWithParent.All(s => s.Item.IsAssumeUnchanged);
+            var isSkipWorktreeAll = Unstaged.SelectedItemsWithParent.All(s => s.Item.IsSkipWorktree);
 
             openWithDifftoolToolStripMenuItem.Enabled = isTrackedSelected;
             assumeUnchangedToolStripMenuItem.Visible = isTrackedSelected && !isSkipWorktreeExist && !isAssumeUnchangedAll;
@@ -1642,9 +1642,9 @@ namespace GitUI.CommandsDialogs
         private void StagedFileContext_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
             // Do not show if no item selected
-            e.Cancel = !Staged.SelectedItems.Any() || Module.IsBareRepository();
+            e.Cancel = !Staged.SelectedItemsWithParent.Any() || Module.IsBareRepository();
 
-            var isNewSelected = Staged.SelectedItems.Any(s => s.IsNew);
+            var isNewSelected = Staged.SelectedItemsWithParent.Any(s => s.Item.IsNew);
 
             stagedFileHistoryToolStripMenuItem6.Enabled = !isNewSelected;
             stagedOpenDifftoolToolStripMenuItem9.Enabled = !isNewSelected;
@@ -2015,13 +2015,13 @@ namespace GitUI.CommandsDialogs
             _shouldRescanChanges = false;
             try
             {
-                if (_currentFilesList == null || !_currentFilesList.SelectedItems.Any())
+                if (_currentFilesList == null || !_currentFilesList.SelectedItemsWithParent.Any())
                 {
                     return;
                 }
 
                 // Show a form asking the user if they want to reset the changes.
-                FormResetChanges.ActionEnum resetType = FormResetChanges.ShowResetDialog(this, _currentFilesList.SelectedItems.Any(item => !item.IsNew), _currentFilesList.SelectedItems.Any(item => item.IsNew));
+                FormResetChanges.ActionEnum resetType = FormResetChanges.ShowResetDialog(this, _currentFilesList.SelectedItemsWithParent.Any(item => !item.Item.IsNew), _currentFilesList.SelectedItemsWithParent.Any(item => item.Item.IsNew));
                 if (resetType == FormResetChanges.ActionEnum.Cancel)
                 {
                     return;
@@ -2040,19 +2040,19 @@ namespace GitUI.CommandsDialogs
                 // remember max selected index
                 _currentFilesList.StoreNextIndexToSelect();
 
-                var deleteNewFiles = _currentFilesList.SelectedItems.Any(item => item.IsNew) && (resetType == FormResetChanges.ActionEnum.ResetAndDelete);
+                var deleteNewFiles = _currentFilesList.SelectedItemsWithParent.Any(item => item.Item.IsNew) && (resetType == FormResetChanges.ActionEnum.ResetAndDelete);
                 var filesInUse = new List<string>();
                 var filesToReset = new List<string>();
                 var output = new StringBuilder();
-                foreach (var item in _currentFilesList.SelectedItems)
+                foreach (var item in _currentFilesList.SelectedItemsWithParent)
                 {
-                    if (item.IsNew)
+                    if (item.Item.IsNew)
                     {
                         if (deleteNewFiles)
                         {
                             try
                             {
-                                string path = _fullPathResolver.Resolve(item.Name);
+                                string path = _fullPathResolver.Resolve(item.Item.Name);
                                 if (File.Exists(path))
                                 {
                                     File.Delete(path);
@@ -2064,7 +2064,7 @@ namespace GitUI.CommandsDialogs
                             }
                             catch (IOException)
                             {
-                                filesInUse.Add(item.Name);
+                                filesInUse.Add(item.Item.Name);
                             }
                             catch (UnauthorizedAccessException)
                             {
@@ -2073,7 +2073,7 @@ namespace GitUI.CommandsDialogs
                     }
                     else
                     {
-                        filesToReset.Add(item.Name);
+                        filesToReset.Add(item.Item.Name);
                     }
                 }
 
@@ -2118,9 +2118,9 @@ namespace GitUI.CommandsDialogs
                 SelectedDiff.Clear();
 
                 Unstaged.StoreNextIndexToSelect();
-                foreach (var item in Unstaged.SelectedItems)
+                foreach (var item in Unstaged.SelectedItemsWithParent)
                 {
-                    File.Delete(_fullPathResolver.Resolve(item.Name));
+                    File.Delete(_fullPathResolver.Resolve(item.Item.Name));
                 }
 
                 Initialize();
@@ -2149,9 +2149,9 @@ namespace GitUI.CommandsDialogs
 
             try
             {
-                foreach (var gitItemStatus in Unstaged.SelectedItems)
+                foreach (var gitItemStatus in Unstaged.SelectedItemsWithParent)
                 {
-                    File.Delete(_fullPathResolver.Resolve(gitItemStatus.Name));
+                    File.Delete(_fullPathResolver.Resolve(gitItemStatus.Item.Name));
                 }
             }
             catch (Exception ex)
@@ -2170,9 +2170,9 @@ namespace GitUI.CommandsDialogs
                 return;
             }
 
-            foreach (var gitItemStatus in Unstaged.SelectedItems)
+            foreach (var gitItemStatus in Unstaged.SelectedItemsWithParent)
             {
-                Module.ResetFile(gitItemStatus.Name);
+                Module.ResetFile(gitItemStatus.Item.Name);
             }
 
             Initialize();
@@ -2448,13 +2448,13 @@ namespace GitUI.CommandsDialogs
 
         private void HandleExcludeFileClick(bool localExclude)
         {
-            if (!Unstaged.SelectedItems.Any())
+            if (!Unstaged.SelectedItemsWithParent.Any())
             {
                 return;
             }
 
             SelectedDiff.Clear();
-            var fileNames = Unstaged.SelectedItems.Select(item => "/" + item.Name).ToArray();
+            var fileNames = Unstaged.SelectedItemsWithParent.Select(item => "/" + item.Item.Name).ToArray();
             if (UICommands.StartAddToGitIgnoreDialog(this, localExclude, fileNames))
             {
                 Initialize();
@@ -2463,7 +2463,7 @@ namespace GitUI.CommandsDialogs
 
         private void AssumeUnchangedToolStripMenuItemClick(object sender, EventArgs e)
         {
-            if (!Unstaged.SelectedItems.Any())
+            if (!Unstaged.SelectedItemsWithParent.Any())
             {
                 return;
             }
@@ -2477,7 +2477,7 @@ namespace GitUI.CommandsDialogs
 
         private void DoNotAssumeUnchangedToolStripMenuItemClick(object sender, EventArgs e)
         {
-            if (!Unstaged.SelectedItems.Any())
+            if (!Unstaged.SelectedItemsWithParent.Any())
             {
                 return;
             }
@@ -2491,7 +2491,7 @@ namespace GitUI.CommandsDialogs
 
         private void SkipWorktreeToolStripMenuItemClick(object sender, EventArgs e)
         {
-            if (!Unstaged.SelectedItems.Any())
+            if (!Unstaged.SelectedItemsWithParent.Any())
             {
                 return;
             }
@@ -2505,7 +2505,7 @@ namespace GitUI.CommandsDialogs
 
         private void DoNotSkipWorktreeToolStripMenuItemClick(object sender, EventArgs e)
         {
-            if (!Unstaged.SelectedItems.Any())
+            if (!Unstaged.SelectedItemsWithParent.Any())
             {
                 return;
             }
@@ -2529,7 +2529,7 @@ namespace GitUI.CommandsDialogs
 
         private void OpenToolStripMenuItemClick(object sender, EventArgs e)
         {
-            if (!SenderToFileStatusList(sender, out var list) || !list.SelectedItems.Any())
+            if (!SenderToFileStatusList(sender, out var list) || !list.SelectedItemsWithParent.Any())
             {
                 return;
             }
@@ -2549,7 +2549,7 @@ namespace GitUI.CommandsDialogs
 
         private void OpenWithToolStripMenuItemClick(object sender, EventArgs e)
         {
-            if (!SenderToFileStatusList(sender, out var list) || !list.SelectedItems.Any())
+            if (!SenderToFileStatusList(sender, out var list) || !list.SelectedItemsWithParent.Any())
             {
                 return;
             }
@@ -2562,13 +2562,13 @@ namespace GitUI.CommandsDialogs
 
         private void FilenameToClipboardToolStripMenuItemClick(object sender, EventArgs e)
         {
-            if (!SenderToFileStatusList(sender, out var list) || !list.SelectedItems.Any())
+            if (!SenderToFileStatusList(sender, out var list) || !list.SelectedItemsWithParent.Any())
             {
                 return;
             }
 
             var fileNames = new StringBuilder();
-            foreach (var item in list.SelectedItems)
+            foreach (var item in list.SelectedItemsWithParent)
             {
                 // Only use append line when multiple items are selected.
                 // This to make it easier to use the text from clipboard when 1 file is selected.
@@ -2577,7 +2577,7 @@ namespace GitUI.CommandsDialogs
                     fileNames.AppendLine();
                 }
 
-                fileNames.Append(_fullPathResolver.Resolve(item.Name).ToNativePath());
+                fileNames.Append(_fullPathResolver.Resolve(item.Item.Name).ToNativePath());
             }
 
             ClipboardUtil.TrySetText(fileNames.ToString());
@@ -2710,8 +2710,8 @@ namespace GitUI.CommandsDialogs
             if (list == null /* menu action triggered directly by hotkey */)
             {
                 // The inactive list's selection has been cleared.
-                list = Staged.SelectedItems.Any() ? Staged :
-                    Unstaged.SelectedItems.Any() ? Unstaged : null;
+                list = Staged.SelectedItemsWithParent.Any() ? Staged :
+                    Unstaged.SelectedItemsWithParent.Any() ? Unstaged : null;
             }
 
             return list != null;
@@ -2724,7 +2724,7 @@ namespace GitUI.CommandsDialogs
                 return;
             }
 
-            if (list.SelectedItems.Count() == 1)
+            if (list.SelectedItemsWithParent.Count() == 1)
             {
                 UICommands.StartFileHistoryDialog(this, list.SelectedItem.Name);
             }
@@ -3186,10 +3186,10 @@ namespace GitUI.CommandsDialogs
 
         private void OpenContainingFolder(FileStatusList list)
         {
-            foreach (var item in list.SelectedItems)
+            foreach (var item in list.SelectedItemsWithParent)
             {
                 var fileNames = new StringBuilder();
-                fileNames.Append(_fullPathResolver.Resolve(item.Name).ToNativePath());
+                fileNames.Append(_fullPathResolver.Resolve(item.Item.Name).ToNativePath());
 
                 string filePath = fileNames.ToString();
                 if (File.Exists(filePath))
@@ -3279,7 +3279,7 @@ namespace GitUI.CommandsDialogs
 
         private void Message_Enter(object sender, EventArgs e)
         {
-            if (Staged.AllItemsCount != 0 && !Staged.SelectedItems.Any())
+            if (Staged.AllItemsCount != 0 && !Staged.SelectedItemsWithParent.Any())
             {
                 _currentFilesList = Staged;
                 Staged.SelectedIndex = 0;

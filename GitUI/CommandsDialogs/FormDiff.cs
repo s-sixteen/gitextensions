@@ -264,8 +264,8 @@ namespace GitUI.CommandsDialogs
 
         private void diffContextToolStripMenuItem_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            bool isAnyTracked = DiffFiles.SelectedItems.Any(item => item.IsTracked);
-            bool isExactlyOneItemSelected = DiffFiles.SelectedItems.Count() == 1;
+            bool isAnyTracked = DiffFiles.SelectedItemsWithParent.Any(item => item.Item.IsTracked);
+            bool isExactlyOneItemSelected = DiffFiles.SelectedItemsWithParent.Count() == 1;
 
             openWithDifftoolToolStripMenuItem.Enabled = isAnyTracked;
             fileHistoryDiffToolstripMenuItem.Enabled = isAnyTracked && isExactlyOneItemSelected;

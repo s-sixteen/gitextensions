@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using FluentAssertions;
@@ -54,6 +55,9 @@ namespace GitExtensions.UITests.CommandsDialogs
             _fileStatusList.SelectedIndex.Should().Be(0);
             _fileStatusList.SelectedItem.Should().BeSameAs(itemAt0);
             _fileStatusList.SelectedItems.Should().BeEquivalentTo(new List<GitItemStatus> { itemAt0 });
+
+            _fileStatusList.SelectedItem.Should().BeSameAs(_fileStatusList.SelectedItemWithParent.Item);
+            _fileStatusList.SelectedItems.Should().BeEquivalentTo(_fileStatusList.SelectedItemsWithParent.Select(i => i.Item));
 
             // SelectedIndex
 
