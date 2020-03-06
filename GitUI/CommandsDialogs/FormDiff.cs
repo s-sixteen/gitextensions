@@ -120,7 +120,7 @@ namespace GitUI.CommandsDialogs
 
             var baseCommit = (ckCompareToMergeBase.Checked ? _mergeBase : _baseRevision) ?? DiffFiles.SelectedItemWithParent.ParentRevision;
 
-            DiffText.ViewChangesAsync(baseCommit?.ObjectId, _headRevision, DiffFiles.SelectedItem, string.Empty);
+            DiffText.ViewChangesAsync(baseCommit?.ObjectId, _headRevision?.ObjectId, DiffFiles.SelectedItem);
         }
 
         private void btnSwap_Click(object sender, EventArgs e)

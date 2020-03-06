@@ -585,48 +585,6 @@ namespace GitUI.Editor
 
         public string GetText() => internalFileViewer.GetText();
 
-        public void ViewCurrentChanges(GitItemStatus item, bool isStaged, [CanBeNull] Action openWithDifftool)
-        {
-            ThreadHelper.JoinableTaskFactory.RunAsync(
-                async () =>
-                {
-                    if (item.IsSubmodule)
-                    {
-                        var getStatusTask = item.GetSubmoduleStatusAsync();
-                        if (getStatusTask != null)
-                        {
-                            var status = await getStatusTask;
-                            if (status == null)
-                            {
-                                await ViewTextAsync(item.Name, $"Submodule \"{item.Name}\" has unresolved conflicts");
-                                return;
-                            }
-
-                            await ViewTextAsync(item.Name, LocalizationHelpers.ProcessSubmoduleStatus(Module, status));
-                            return;
-                        }
-
-                        var changes = await Module.GetCurrentChangesAsync(item.Name, item.OldName, isStaged,
-                            GetExtraDiffArguments(), Encoding);
-                        var text = LocalizationHelpers.ProcessSubmodulePatch(Module, item.Name, changes);
-                        await ViewTextAsync(item.Name, text);
-                        return;
-                    }
-
-                    if (!item.IsTracked || item.IsNew)
-                    {
-                        var id = isStaged ? ObjectId.IndexId : ObjectId.WorkTreeId;
-                        await ViewGitItemRevisionAsync(item, id, openWithDifftool);
-                    }
-                    else
-                    {
-                        var patch = await Module.GetCurrentChangesAsync(
-                            item.Name, item.OldName, isStaged, GetExtraDiffArguments(), Encoding);
-                        await ViewPatchAsync(item.Name, patch?.Text ?? "", openWithDifftool, isText: false);
-                    }
-                });
-        }
-
         /// <summary>
         /// Present the text as a patch in the file viewer
         /// </summary>

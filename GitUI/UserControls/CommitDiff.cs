@@ -81,25 +81,7 @@ namespace GitUI.UserControls
                 return;
             }
 
-            if (item.ParentRevision?.ObjectId == ObjectId.CombinedDiffId)
-            {
-                var diffOfConflict = Module.GetCombinedDiffContent(item.SelectedRevision, item.Item.Name,
-                    DiffText.GetExtraDiffArguments(), DiffText.Encoding);
-
-                if (string.IsNullOrWhiteSpace(diffOfConflict))
-                {
-                    diffOfConflict = Strings.UninterestingDiffOmitted;
-                }
-
-                await DiffText.ViewPatchAsync(item.Item.Name,
-                    text: diffOfConflict,
-                    openWithDifftool: null,
-                    isText: item.Item.IsSubmodule);
-
-                return;
-            }
-
-            await DiffText.ViewChangesAsync(item.ParentRevision?.ObjectId, item.SelectedRevision, item.Item, string.Empty);
+            await DiffText.ViewChangesAsync(item.ParentRevision?.ObjectId, item.SelectedRevision?.ObjectId, item.Item);
         }
     }
 }

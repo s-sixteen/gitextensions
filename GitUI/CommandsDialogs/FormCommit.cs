@@ -1229,17 +1229,11 @@ namespace GitUI.CommandsDialogs
             }
         }
 
-        private async Task SetSelectedDiffAsync(GitItemStatus item, bool staged)
+        private Task SetSelectedDiffAsync(GitItemStatus item, bool staged)
         {
-            if (FileHelper.IsImage(item.Name))
-            {
-                var guid = staged ? ObjectId.IndexId : ObjectId.WorkTreeId;
-                await SelectedDiff.ViewGitItemRevisionAsync(item, guid, () => OpenWithDiffTool());
-            }
-            else
-            {
-                SelectedDiff.ViewCurrentChanges(item, staged, () => OpenWithDiffTool());
-            }
+            var first = staged ? GetHeadRevision()?.ObjectId : ObjectId.IndexId;
+            var selected = staged ? ObjectId.IndexId : ObjectId.WorkTreeId;
+            return SelectedDiff.ViewChangesAsync(first, selected, item, openWithDiffTool: () => OpenWithDiffTool());
         }
 
         private void ClearDiffViewIfNoFilesLeft()

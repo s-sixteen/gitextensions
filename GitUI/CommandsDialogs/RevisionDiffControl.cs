@@ -363,26 +363,8 @@ namespace GitUI.CommandsDialogs
                 return;
             }
 
-            if (item.ParentRevision?.ObjectId == ObjectId.CombinedDiffId)
-            {
-                var diffOfConflict = Module.GetCombinedDiffContent(item.SelectedRevision, item.Item.Name,
-                    DiffText.GetExtraDiffArguments(), DiffText.Encoding);
-
-                if (string.IsNullOrWhiteSpace(diffOfConflict))
-                {
-                    diffOfConflict = Strings.UninterestingDiffOmitted;
-                }
-
-                await DiffText.ViewPatchAsync(item.Item.Name,
-                    text: diffOfConflict,
-                    openWithDifftool: () => firstToSelectedToolStripMenuItem.PerformClick(),
-                    isText: item.Item.IsSubmodule);
-
-                return;
-            }
-
-            await DiffText.ViewChangesAsync(item.ParentRevision?.ObjectId, item.SelectedRevision, item.Item, string.Empty,
-                openWithDifftool: () => firstToSelectedToolStripMenuItem.PerformClick());
+            await DiffText.ViewChangesAsync(item.ParentRevision?.ObjectId, item.SelectedRevision?.ObjectId, item.Item,
+                openWithDiffTool: () => firstToSelectedToolStripMenuItem.PerformClick());
         }
 
         private void DiffFiles_SelectedIndexChanged(object sender, EventArgs e)
