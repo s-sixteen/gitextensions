@@ -2130,7 +2130,8 @@ namespace GitUI.CommandsDialogs
             FocusPrevTab = 32,
             OpenWithDifftoolFirstToLocal = 33,
             OpenWithDifftoolSelectedToLocal = 34,
-            OpenCommitsWithDifftool = 35
+            OpenCommitsWithDifftool = 35,
+            SwitchBetweenArtificialCommits = 36
         }
 
         internal Keys GetShortcutKeys(Command cmd)
@@ -2219,6 +2220,7 @@ namespace GitUI.CommandsDialogs
                 case Command.OpenAsTempFileWith when fileTree.Visible: fileTree.ExecuteCommand(RevisionFileTreeControl.Command.OpenAsTempFileWith); break;
                 case Command.GoToSuperproject: toolStripButtonLevelUp_ButtonClick(null, null); break;
                 case Command.GoToSubmodule: toolStripButtonLevelUp.ShowDropDown(); break;
+                case Command.SwitchBetweenArtificialCommits: SwitchBetweenArtificialCommits(); break;
                 default: return base.ExecuteCommand(cmd);
             }
 
@@ -3145,6 +3147,44 @@ namespace GitUI.CommandsDialogs
                 || e.Data.GetDataPresent(DataFormats.UnicodeText))
             {
                 e.Effect = DragDropEffects.Move;
+            }
+        }
+
+        private void SwitchBetweenArtificialCommits()
+        {
+            GoToRef(GetIdToSelect()?.ToString(), showNoRevisionMsg: false);
+
+            if (!revisionDiff.Visible)
+            {
+                CommitInfoTabControl.SelectedTab = DiffTabPage;
+            }
+
+            if (revisionDiff.Visible)
+            {
+                // force focus of file list
+                revisionDiff.SwitchFocus(alreadyContainedFocus: false);
+            }
+
+            return;
+
+            ObjectId GetIdToSelect()
+            {
+                bool hasChanges_WorkTree = HasChanges(ObjectId.WorkTreeId);
+                bool hasChanges_Index = HasChanges(ObjectId.IndexId);
+                if (hasChanges_WorkTree || hasChanges_Index)
+                {
+                    ObjectId latestSelectedId = RevisionGrid?.LatestSelectedRevision?.ObjectId;
+                    return (latestSelectedId != ObjectId.WorkTreeId && hasChanges_WorkTree) ? ObjectId.WorkTreeId
+                           : (latestSelectedId != ObjectId.IndexId && hasChanges_Index) ? ObjectId.IndexId
+                           : null; // stay at the single artificial commit which has changes
+                }
+
+                return RevisionGrid?.CurrentCheckout;
+
+                bool HasChanges(ObjectId id)
+                {
+                    return RevisionGrid?.GetChangeCount(id)?.Any ?? false;
+                }
             }
         }
 

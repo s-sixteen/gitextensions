@@ -296,6 +296,7 @@ namespace GitUI.Hotkey
                     Hk(FormBrowse.Command.QuickPush, Keys.Control | Keys.Shift | Keys.Up),
                     Hk(FormBrowse.Command.Stash, Keys.Control | Keys.Alt | Keys.Up),
                     Hk(FormBrowse.Command.StashPop, Keys.Control | Keys.Alt | Keys.Down),
+                    Hk(FormBrowse.Command.SwitchBetweenArtificialCommits, Keys.Control | Keys.OemBackslash),
                     Hk(FormBrowse.Command.ToggleBranchTreePanel, Keys.Control | Keys.Alt | Keys.C)),
                 new HotkeySettings(
                     RevisionGridControl.HotkeySettingsName,

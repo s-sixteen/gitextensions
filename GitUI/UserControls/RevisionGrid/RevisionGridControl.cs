@@ -355,10 +355,6 @@ namespace GitUI
             _fixedPathFilter = filter.path;
         }
 
-        #region Quick search
-
-        #endregion
-
         private void InitiateRefAction([CanBeNull] IReadOnlyList<IGitRef> refs, Action<IGitRef> action, FormQuickGitRefSelector.Action actionLabel)
         {
             if (refs == null || refs.Count < 1)
@@ -1977,6 +1973,13 @@ namespace GitUI
             public IReadOnlyList<GitItemStatus> Deleted { get; set; }
             public IReadOnlyList<GitItemStatus> SubmodulesChanged { get; set; }
             public IReadOnlyList<GitItemStatus> SubmodulesDirty { get; set; }
+
+            public bool Any
+                => Changed.Count > 0
+                   || New.Count > 0
+                   || Deleted.Count > 0
+                   || SubmodulesChanged.Count > 0
+                   || SubmodulesDirty.Count > 0;
         }
 
         [CanBeNull]
@@ -2374,6 +2377,11 @@ namespace GitUI
 
         public void GoToRef(string refName, bool showNoRevisionMsg)
         {
+            if (refName.IsNullOrEmpty())
+            {
+                return;
+            }
+
             if (DetachedHeadParser.TryParse(refName, out var sha1))
             {
                 refName = sha1;
