@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
@@ -198,6 +199,19 @@ namespace GitCommands
             }
 
             return str.ToString();
+        }
+    }
+
+    public class GitItemStatusNameComparer : IEqualityComparer<GitItemStatus>
+    {
+        public bool Equals(GitItemStatus x, GitItemStatus y)
+        {
+            return x?.Name == y?.Name;
+        }
+
+        public int GetHashCode(GitItemStatus obj)
+        {
+            return obj.Name.GetHashCode();
         }
     }
 }
