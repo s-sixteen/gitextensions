@@ -160,7 +160,8 @@ namespace GitUI.CommandsDialogs
             else if (checkboxRevisionFilter.Checked)
             {
                 // 1. get all changed (and not deleted files) from selected to current revision
-                var files = UICommands.Module.GetDiffFiles(DiffSelectedRevision.Guid, SelectedRevision.Guid, SelectedRevision.ParentIds.FirstOrDefault()?.ToString()).Where(f => !f.IsDeleted);
+                var stagedStatus = GitCommandHelpers.GetStagedStatus(DiffSelectedRevision?.ObjectId, SelectedRevision?.ObjectId, DiffSelectedRevision?.ObjectId);
+                var files = UICommands.Module.GetDiffFiles(DiffSelectedRevision?.Guid, SelectedRevision?.Guid, stagedStatus).Where(f => !f.IsDeleted);
 
                 // 2. wrap file names with ""
                 // 3. join together with space as separator

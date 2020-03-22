@@ -617,26 +617,34 @@ namespace GitCommands
         /// </summary>
         /// <param name="module">The Git module</param>
         /// <param name="statusString">output from the git command</param>
-        /// <param name="firstRevision">from revision string</param>
-        /// <param name="secondRevision">to revision</param>
-        /// <param name="parentToSecond">The parent for the second revision</param>
+        /// <param name="staged">required to determine if the <see cref="GitItemStatus"/> are WorkTree or Index.</param>
         /// <returns>list with the parsed GitItemStatus</returns>
         /// <seealso href="https://git-scm.com/docs/git-diff"/>
+        public static IReadOnlyList<GitItemStatus> GetDiffChangedFilesFromString(IGitModule module, string statusString, StagedStatus staged)
+        {
+            return GetAllChangedFilesFromString_v1(module, statusString, true, staged);
+        }
+
+        /// <summary>
+        /// If possible, find if files in a diff are index or worktree
+        /// </summary>
+        /// <param name="firstId">from revision string</param>
+        /// <param name="secondId">to revision</param>
+        /// <param name="parentToSecond">The parent for the second revision</param>
         /// <remarks>Git revisions are required to determine if the <see cref="GitItemStatus"/> are WorkTree or Index.</remarks>
-        public static IReadOnlyList<GitItemStatus> GetDiffChangedFilesFromString(IGitModule module, string statusString, [CanBeNull] string firstRevision, [CanBeNull] string secondRevision, [CanBeNull] string parentToSecond)
+        public static StagedStatus GetStagedStatus([CanBeNull] ObjectId firstId, [CanBeNull] ObjectId secondId, [CanBeNull] ObjectId parentToSecond)
         {
             StagedStatus staged;
-            if (firstRevision == GitRevision.IndexGuid && secondRevision == GitRevision.WorkTreeGuid)
+            if (firstId == ObjectId.IndexId && secondId == ObjectId.WorkTreeId)
             {
                 staged = StagedStatus.WorkTree;
             }
-            else if (firstRevision == parentToSecond && secondRevision == GitRevision.IndexGuid)
+            else if (firstId == parentToSecond && secondId == ObjectId.IndexId)
             {
                 staged = StagedStatus.Index;
             }
-            else if ((firstRevision.IsNotNullOrWhitespace() && !firstRevision.IsArtificial()) ||
-                (secondRevision.IsNotNullOrWhitespace() && !secondRevision.IsArtificial()) ||
-                parentToSecond.IsNotNullOrWhitespace())
+            else if (firstId != null && !firstId.IsArtificial &&
+                     secondId != null && !secondId.IsArtificial)
             {
                 // This cannot be a worktree/index file
                 staged = StagedStatus.None;
@@ -646,7 +654,7 @@ namespace GitCommands
                 staged = StagedStatus.Unknown;
             }
 
-            return GetAllChangedFilesFromString_v1(module, statusString, true, staged);
+            return staged;
         }
 
         /// <summary>
