@@ -27,7 +27,6 @@ namespace GitUI.CommandsDialogs
         // Defaults are set to simplify test cases, the defaults enables most
         public ContextMenuSelectionInfo(
             GitRevision selectedRevision = null,
-            bool firstIsParent = false,
             bool isAnyCombinedDiff = false,
             bool isSingleGitItemSelected = true,
             bool isAnyItemSelected = true,
@@ -39,7 +38,6 @@ namespace GitUI.CommandsDialogs
             bool isAnySubmodule = false)
         {
             SelectedRevision = selectedRevision;
-            FirstIsParent = firstIsParent;
             IsAnyCombinedDiff = isAnyCombinedDiff;
             IsSingleGitItemSelected = isSingleGitItemSelected;
             IsAnyItemSelected = isAnyItemSelected;
@@ -52,7 +50,6 @@ namespace GitUI.CommandsDialogs
         }
 
         public GitRevision SelectedRevision { get; }
-        public bool FirstIsParent { get; }
         public bool IsAnyCombinedDiff { get; }
         public bool IsSingleGitItemSelected { get; }
         public bool IsAnyItemSelected { get; }

@@ -15,6 +15,7 @@ using GitExtUtils;
 using GitUI.CommandsDialogs.BrowseDialog;
 using GitUI.HelperDialogs;
 using GitUI.Hotkey;
+using GitUI.UserControls;
 using GitUI.UserControls.RevisionGrid;
 using GitUIPluginInterfaces;
 using JetBrains.Annotations;
@@ -72,7 +73,7 @@ namespace GitUI.CommandsDialogs
 
             DiffFiles.StoreNextIndexToSelect();
             SetDiffs(revisions);
-            if (DiffFiles.SelectedItem == null)
+            if (DiffFiles.SelectedItemWithParent == null)
             {
                 DiffFiles.SelectStoredNextIndex();
             }
@@ -161,7 +162,7 @@ namespace GitUI.CommandsDialogs
         {
             var revisions = _revisionGrid.GetSelectedRevisions();
             SetDiffs(revisions);
-            if (DiffFiles.SelectedItem == null)
+            if (DiffFiles.SelectedItemWithParent == null)
             {
                 DiffFiles.SelectFirstVisibleItem();
             }
@@ -169,13 +170,13 @@ namespace GitUI.CommandsDialogs
 
         private void SetDiffs(IReadOnlyList<GitRevision> revisions)
         {
-            GitItemStatus oldDiffItem = DiffFiles.SelectedItem;
+            var oldDiffItem = DiffFiles.SelectedItemWithParent;
             DiffFiles.SetDiffs(revisions, _revisionGrid.GetRevision);
 
             // Try to restore previous item
-            if (oldDiffItem != null && DiffFiles.GitItemStatuses.Any(i => i.Name.Equals(oldDiffItem.Name)))
+            if (oldDiffItem != null && DiffFiles.GitItemStatuses.Any(i => i.Name.Equals(oldDiffItem.Item.Name)))
             {
-                DiffFiles.SelectedItem = oldDiffItem;
+                DiffFiles.SelectedItem = oldDiffItem.Item;
             }
         }
 
@@ -224,6 +225,7 @@ namespace GitUI.CommandsDialogs
         /// Provide a description for the first selected or parent to the "primary" selected last
         /// </summary>
         /// <returns>A description of the selected parent</returns>
+        [CanBeNull]
         private string DescribeRevision(List<GitRevision> parents)
         {
             if (parents.Count == 1)
@@ -243,7 +245,7 @@ namespace GitUI.CommandsDialogs
         {
             fileIndex = -1;
             loadFileContent = Task.CompletedTask;
-            if (DiffFiles.Revision == null)
+            if (DiffFiles.SelectedItemWithParent == null)
             {
                 return false;
             }
@@ -273,24 +275,28 @@ namespace GitUI.CommandsDialogs
 
         private ContextMenuSelectionInfo GetSelectionInfo()
         {
+            // Some items are not supported if more than one revision is selected
+            var revisions = DiffFiles.SelectedItemsWithParent.Select(item => item.SelectedRevision).Distinct().ToList();
+            var selectedRev = revisions.Count() != 1 ? null : revisions.FirstOrDefault();
+
             // First (A) is parent if one revision selected or if parent, then selected
-            bool firstIsParent = _gitRevisionTester.AllFirstAreParentsToSelected(DiffFiles.SelectedItemParents.Select(item => item.ObjectId).ToList(), DiffFiles.Revision);
+            var parentIds = DiffFiles.SelectedItemsWithParent.Select(i => i.ParentRevision.ObjectId).Distinct().ToList();
 
             // Combined diff is a display only diff, no manipulations
-            bool isAnyCombinedDiff = DiffFiles.SelectedItemParents.Any(item => item.ObjectId == ObjectId.CombinedDiffId);
-            bool isExactlyOneItemSelected = DiffFiles.SelectedItems.Count() == 1;
-            bool isAnyItemSelected = DiffFiles.SelectedItems.Any();
+            bool isAnyCombinedDiff = parentIds.Contains(ObjectId.CombinedDiffId);
+            bool isExactlyOneItemSelected = DiffFiles.SelectedItemsWithParent.Count() == 1;
+            bool isAnyItemSelected = DiffFiles.SelectedItemsWithParent.Any();
 
             // No changes to files in bare repos
             bool isBareRepository = Module.IsBareRepository();
-            bool isAnyTracked = DiffFiles.SelectedItems.Any(item => item.IsTracked);
-            bool isAnyIndex = DiffFiles.SelectedItems.Any(item => item.Staged == StagedStatus.Index);
-            bool isAnyWorkTree = DiffFiles.SelectedItems.Any(item => item.Staged == StagedStatus.WorkTree);
-            bool isAnySubmodule = DiffFiles.SelectedItems.Any(item => item.IsSubmodule);
-            bool singleFileExists = isExactlyOneItemSelected && File.Exists(_fullPathResolver.Resolve(DiffFiles.SelectedItem.Name));
+            bool isAnyTracked = DiffFiles.SelectedItemsWithParent.Any(item => item.Item.IsTracked);
+            bool isAnyIndex = DiffFiles.SelectedItemsWithParent.Any(item => item.Item.Staged == StagedStatus.Index);
+            bool isAnyWorkTree = DiffFiles.SelectedItemsWithParent.Any(item => item.Item.Staged == StagedStatus.WorkTree);
+            bool isAnySubmodule = DiffFiles.SelectedItemsWithParent.Any(item => item.Item.IsSubmodule);
+            bool singleFileExists = isExactlyOneItemSelected && File.Exists(_fullPathResolver.Resolve(DiffFiles.SelectedItemWithParent.Item.Name));
 
-            var selectionInfo = new ContextMenuSelectionInfo(DiffFiles.Revision,
-                firstIsParent: firstIsParent,
+            var selectionInfo = new ContextMenuSelectionInfo(
+                selectedRevision: selectedRev,
                 isAnyCombinedDiff: isAnyCombinedDiff,
                 isSingleGitItemSelected: isExactlyOneItemSelected,
                 isAnyItemSelected: isAnyItemSelected,
@@ -305,32 +311,43 @@ namespace GitUI.CommandsDialogs
 
         private void ResetSelectedItemsTo(bool actsAsChild)
         {
-            if (!DiffFiles.SelectedItems.Any())
+            var selectedItems = DiffFiles.SelectedItemsWithParent.ToList();
+            if (!selectedItems.Any())
             {
                 return;
             }
 
-            var selectedItems = DiffFiles.SelectedItems;
             if (actsAsChild)
             {
-                // selected, all are the same
-                var deletedItems = selectedItems.Where(item => item.IsDeleted);
-                Module.RemoveFiles(deletedItems.Select(item => item.Name).ToList(), false);
+                // selected revisions
+                var deletedItems = selectedItems
+                    .Where(item => item.Item.IsDeleted)
+                    .Select(item => item.Item.Name).ToList();
+                Module.RemoveFiles(deletedItems, false);
 
-                var itemsToCheckout = selectedItems.Where(item => !item.IsDeleted);
-                Module.CheckoutFiles(itemsToCheckout.Select(item => item.Name).ToList(), DiffFiles.Revision.ObjectId, force: false);
+                foreach (var childId in selectedItems.Select(i => i.SelectedRevision.ObjectId).Distinct())
+                {
+                    var itemsToCheckout = selectedItems
+                        .Where(item => !item.Item.IsDeleted && item.SelectedRevision.ObjectId == childId)
+                        .Select(item => item.Item.Name).ToList();
+                    Module.CheckoutFiles(itemsToCheckout, childId, force: false);
+                }
             }
             else
             {
                 // acts as parent
                 // if file is new to the parent or is copied, it has to be removed
-                var addedItems = selectedItems.Where(item => item.IsNew || item.IsCopied);
-                Module.RemoveFiles(addedItems.Select(item => item.Name).ToList(), false);
+                var addedItems = selectedItems
+                    .Where(item => item.Item.IsNew || item.Item.IsCopied)
+                    .Select(item => item.Item.Name).ToList();
+                Module.RemoveFiles(addedItems, false);
 
-                foreach (var parent in DiffFiles.SelectedItemParents)
+                foreach (var parentId in selectedItems.Select(i => i.ParentRevision.ObjectId).Distinct())
                 {
-                    var itemsToCheckout = DiffFiles.SelectedItemsWithParent.Where(item => !item.Item.IsNew && item.ParentRevision.ObjectId == parent.ObjectId);
-                    Module.CheckoutFiles(itemsToCheckout.Select(item => item.Item.Name).ToList(), parent.ObjectId, force: false);
+                    var itemsToCheckout = selectedItems
+                        .Where(item => !item.Item.IsNew && item.ParentRevision.ObjectId == parentId)
+                        .Select(item => item.Item.Name).ToList();
+                    Module.CheckoutFiles(itemsToCheckout, parentId, force: false);
                 }
             }
 
@@ -339,15 +356,16 @@ namespace GitUI.CommandsDialogs
 
         private async Task ShowSelectedFileDiffAsync()
         {
-            if (DiffFiles.SelectedItem == null || DiffFiles.Revision == null)
+            GitItemStatusWithParent item = DiffFiles.SelectedItemWithParent;
+            if (item?.SelectedRevision == null || item.Item == null)
             {
                 DiffText.Clear();
                 return;
             }
 
-            if (DiffFiles.SelectedItemParent?.ObjectId == ObjectId.CombinedDiffId)
+            if (item.ParentRevision?.ObjectId == ObjectId.CombinedDiffId)
             {
-                var diffOfConflict = Module.GetCombinedDiffContent(DiffFiles.Revision, DiffFiles.SelectedItem.Name,
+                var diffOfConflict = Module.GetCombinedDiffContent(item.SelectedRevision, item.Item.Name,
                     DiffText.GetExtraDiffArguments(), DiffText.Encoding);
 
                 if (string.IsNullOrWhiteSpace(diffOfConflict))
@@ -355,15 +373,15 @@ namespace GitUI.CommandsDialogs
                     diffOfConflict = Strings.UninterestingDiffOmitted;
                 }
 
-                await DiffText.ViewPatchAsync(DiffFiles.SelectedItem.Name,
+                await DiffText.ViewPatchAsync(item.Item.Name,
                     text: diffOfConflict,
                     openWithDifftool: () => firstToSelectedToolStripMenuItem.PerformClick(),
-                    isText: DiffFiles.SelectedItem.IsSubmodule);
+                    isText: item.Item.IsSubmodule);
 
                 return;
             }
 
-            await DiffText.ViewChangesAsync(DiffFiles.SelectedItemParent?.ObjectId, DiffFiles.Revision, DiffFiles.SelectedItem, string.Empty,
+            await DiffText.ViewChangesAsync(item.ParentRevision?.ObjectId, item.SelectedRevision, item.Item, string.Empty,
                 openWithDifftool: () => firstToSelectedToolStripMenuItem.PerformClick());
         }
 
@@ -377,19 +395,20 @@ namespace GitUI.CommandsDialogs
 
         private void DiffFiles_DoubleClick(object sender, EventArgs e)
         {
-            if (DiffFiles.SelectedItem == null)
+            GitItemStatusWithParent item = DiffFiles.SelectedItemWithParent;
+            if (item?.SelectedRevision == null || item.Item == null || !item.Item.IsTracked)
             {
                 return;
             }
 
-            if (AppSettings.OpenSubmoduleDiffInSeparateWindow && DiffFiles.SelectedItem.IsSubmodule)
+            if (AppSettings.OpenSubmoduleDiffInSeparateWindow && item.Item.IsSubmodule)
             {
-                var submoduleName = DiffFiles.SelectedItem.Name;
+                var submoduleName = item.Item.Name;
 
                 ThreadHelper.JoinableTaskFactory.RunAsync(
                     async () =>
                     {
-                        var status = await DiffFiles.SelectedItem.GetSubmoduleStatusAsync().ConfigureAwait(false);
+                        var status = await item.Item.GetSubmoduleStatusAsync().ConfigureAwait(false);
 
                         var process = new Process
                         {
@@ -406,7 +425,7 @@ namespace GitUI.CommandsDialogs
             }
             else
             {
-                UICommands.StartFileHistoryDialog(this, DiffFiles.SelectedItem.Name, DiffFiles.Revision);
+                UICommands.StartFileHistoryDialog(this, item.Item.Name, item.SelectedRevision);
             }
         }
 
@@ -430,7 +449,7 @@ namespace GitUI.CommandsDialogs
         {
             // switch to view (and fills the first level of file tree data model if not already done)
             (FindForm() as FormBrowse)?.ExecuteCommand(FormBrowse.Command.FocusFileTree);
-            _revisionFileTree.ExpandToFile(DiffFiles.SelectedItems.First().Name);
+            _revisionFileTree.ExpandToFile(DiffFiles.SelectedItemsWithParent.First().Item.Name);
         }
 
         private void DiffContextMenu_Opening(object sender, CancelEventArgs e)
@@ -476,9 +495,9 @@ namespace GitUI.CommandsDialogs
             {
                 openContainingFolderToolStripMenuItem.Enabled = false;
 
-                foreach (var item in DiffFiles.SelectedItems)
+                foreach (var item in DiffFiles.SelectedItemsWithParent)
                 {
-                    string filePath = _fullPathResolver.Resolve(item.Name);
+                    string filePath = _fullPathResolver.Resolve(item.Item.Name);
                     if (FormBrowseUtil.FileOrParentDirectoryExists(filePath))
                     {
                         openContainingFolderToolStripMenuItem.Enabled = true;
@@ -490,12 +509,13 @@ namespace GitUI.CommandsDialogs
 
         private void blameToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            GitItemStatus item = DiffFiles.SelectedItem;
-
-            if (item != null && item.IsTracked)
+            GitItemStatusWithParent item = DiffFiles.SelectedItemWithParent;
+            if (item?.SelectedRevision == null || item.Item == null || !item.Item.IsTracked)
             {
-                UICommands.StartFileHistoryDialog(this, item.Name, DiffFiles.Revision, true, true);
+                return;
             }
+
+            UICommands.StartFileHistoryDialog(this, item.Item.Name, item.SelectedRevision, true, true);
         }
 
         private void StageFileToolStripMenuItemClick(object sender, EventArgs e)
@@ -505,7 +525,7 @@ namespace GitUI.CommandsDialogs
 
         private void StageFiles()
         {
-            var files = DiffFiles.SelectedItems.Where(item => item.Staged == StagedStatus.WorkTree).ToList();
+            var files = DiffFiles.SelectedItemsWithParent.Where(item => item.Item.Staged == StagedStatus.WorkTree).Select(i => i.Item).ToList();
 
             Module.StageFiles(files, out _);
             RefreshArtificial();
@@ -518,7 +538,7 @@ namespace GitUI.CommandsDialogs
 
         private void UnstageFiles()
         {
-            Module.BatchUnstageFiles(DiffFiles.SelectedItems.Where(item => item.Staged == StagedStatus.Index));
+            Module.BatchUnstageFiles(DiffFiles.SelectedItemsWithParent.Where(item => item.Item.Staged == StagedStatus.Index).Select(i => i.Item).ToList());
             RefreshArtificial();
         }
 
@@ -560,12 +580,13 @@ namespace GitUI.CommandsDialogs
 
         private void fileHistoryDiffToolstripMenuItem_Click(object sender, EventArgs e)
         {
-            GitItemStatus item = DiffFiles.SelectedItem;
-
-            if (item != null && item.IsTracked)
+            GitItemStatusWithParent item = DiffFiles.SelectedItemWithParent;
+            if (item?.SelectedRevision == null || item.Item == null || !item.Item.IsTracked)
             {
-                UICommands.StartFileHistoryDialog(this, item.Name, DiffFiles.Revision);
+                return;
             }
+
+            UICommands.StartFileHistoryDialog(this, item.Item.Name, item.SelectedRevision);
         }
 
         private void openContainingFolderToolStripMenuItem_Click(object sender, EventArgs e)
@@ -575,11 +596,6 @@ namespace GitUI.CommandsDialogs
 
         private void openWithDifftoolToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (DiffFiles.SelectedItem == null || DiffFiles.Revision == null)
-            {
-                return;
-            }
-
             RevisionDiffKind diffKind;
 
             if (sender == firstToLocalToolStripMenuItem)
@@ -612,31 +628,31 @@ namespace GitUI.CommandsDialogs
                     continue;
                 }
 
-                var revs = new[] { DiffFiles.Revision, itemWithParent.ParentRevision };
+                GitRevision[] revs = new[] { itemWithParent.SelectedRevision, itemWithParent.ParentRevision };
                 UICommands.OpenWithDifftool(this, revs, itemWithParent.Item.Name, itemWithParent.Item.OldName, diffKind, itemWithParent.Item.IsTracked);
             }
         }
 
         private void diffEditWorkingDirectoryFileToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (DiffFiles.SelectedItem == null)
+            if (DiffFiles.SelectedItemWithParent == null)
             {
                 return;
             }
 
-            var fileName = _fullPathResolver.Resolve(DiffFiles.SelectedItem.Name);
+            var fileName = _fullPathResolver.Resolve(DiffFiles.SelectedItemWithParent.Item.Name);
             UICommands.StartFileEditorDialog(fileName);
             RefreshArtificial();
         }
 
         private void diffOpenWorkingDirectoryFileWithToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (DiffFiles.SelectedItem == null)
+            if (DiffFiles.SelectedItemWithParent == null)
             {
                 return;
             }
 
-            var fileName = _fullPathResolver.Resolve(DiffFiles.SelectedItem.Name);
+            var fileName = _fullPathResolver.Resolve(DiffFiles.SelectedItemWithParent.Item.Name);
             OsShellUtil.OpenAs(fileName.ToNativePath());
         }
 
@@ -652,10 +668,8 @@ namespace GitUI.CommandsDialogs
 
         private void SaveSelectedItemToTempFile(Action<string> onSaved)
         {
-            var gitItemStatus = DiffFiles.SelectedItem;
-            var revisionId = DiffFiles.Revision?.ObjectId;
-
-            if (gitItemStatus?.Name == null || revisionId == null || revisionId == ObjectId.CombinedDiffId)
+            var item = DiffFiles.SelectedItemWithParent;
+            if (item?.Item?.Name == null || item.SelectedRevision == null)
             {
                 return;
             }
@@ -664,14 +678,14 @@ namespace GitUI.CommandsDialogs
             {
                 await TaskScheduler.Default;
 
-                var blob = Module.GetFileBlobHash(gitItemStatus.Name, revisionId);
+                var blob = Module.GetFileBlobHash(item.Item.Name, item.SelectedRevision.ObjectId);
 
                 if (blob == null)
                 {
                     return;
                 }
 
-                var fileName = PathUtil.GetFileName(gitItemStatus.Name);
+                var fileName = PathUtil.GetFileName(item.Item.Name);
                 fileName = (Path.GetTempPath() + fileName).ToNativePath();
                 Module.SaveBlobAs(fileName, blob.ToString());
 
@@ -681,16 +695,20 @@ namespace GitUI.CommandsDialogs
 
         private ContextMenuDiffToolInfo GetContextMenuDiffToolInfo()
         {
-            bool firstIsParent = _gitRevisionTester.AllFirstAreParentsToSelected(DiffFiles.SelectedItemParents.Select(item => item.ObjectId).ToList(), DiffFiles.Revision);
+            // Some items are not supported if more than one revision is selected
+            var revisions = DiffFiles.SelectedItemsWithParent.Select(item => item.SelectedRevision).Distinct().ToList();
+            var selectedRev = revisions.Count() != 1 ? null : revisions.FirstOrDefault();
+
+            var parentIds = DiffFiles.SelectedItemsWithParent.Select(i => i.ParentRevision.ObjectId).Distinct().ToList();
+            bool firstIsParent = _gitRevisionTester.AllFirstAreParentsToSelected(parentIds, selectedRev);
             bool localExists = _gitRevisionTester.AnyLocalFileExists(DiffFiles.SelectedItemsWithParent.Select(i => i.Item));
 
-            var selectedItemParentRevs = DiffFiles.SelectedItemParents.Select(i => i.ObjectId).ToList();
             bool allAreNew = DiffFiles.SelectedItemsWithParent.All(i => i.Item.IsNew);
             bool allAreDeleted = DiffFiles.SelectedItemsWithParent.All(i => i.Item.IsDeleted);
 
             return new ContextMenuDiffToolInfo(
-                DiffFiles.Revision,
-                selectedItemParentRevs,
+                selectedRevision: selectedRev,
+                selectedItemParentRevs: parentIds,
                 allAreNew: allAreNew,
                 allAreDeleted: allAreDeleted,
                 firstIsParent: firstIsParent,
@@ -701,20 +719,16 @@ namespace GitUI.CommandsDialogs
         private void openWithDifftoolToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
             ContextMenuDiffToolInfo selectionInfo = GetContextMenuDiffToolInfo();
+            var revisions = DiffFiles.SelectedItemsWithParent.Select(item => item.SelectedRevision).Distinct().ToList();
 
-            if (DiffFiles.SelectedItemsWithParent.Any())
+            if (revisions.Any())
             {
-                selectedDiffCaptionMenuItem.Text = _selectedRevision + DescribeRevision(DiffFiles.Revision?.ObjectId, 50);
+                selectedDiffCaptionMenuItem.Text = _selectedRevision + (DescribeRevision(revisions) ?? string.Empty);
                 selectedDiffCaptionMenuItem.Visible = true;
                 MenuUtil.SetAsCaptionMenuItem(selectedDiffCaptionMenuItem, DiffContextMenu);
 
-                firstDiffCaptionMenuItem.Text = _firstRevision.Text;
-                var parentDesc = DescribeRevision(DiffFiles.SelectedItemParents.ToList());
-                if (parentDesc.IsNotNullOrWhitespace())
-                {
-                    firstDiffCaptionMenuItem.Text += parentDesc;
-                }
-
+                firstDiffCaptionMenuItem.Text = _firstRevision.Text +
+                                                (DescribeRevision(DiffFiles.SelectedItemsWithParent.Select(i => i.ParentRevision).Distinct().ToList()) ?? string.Empty);
                 firstDiffCaptionMenuItem.Visible = true;
                 MenuUtil.SetAsCaptionMenuItem(firstDiffCaptionMenuItem, DiffContextMenu);
             }
@@ -742,24 +756,26 @@ namespace GitUI.CommandsDialogs
         /// Checks if it is possible to reset to the revision.
         /// For artificial is Index is possible but not WorkTree or Combined
         /// </summary>
-        /// <param name="rev">The GitRevision</param>
+        /// <param name="guid">The Git objectId</param>
         /// <returns>If it is possible to reset to the revisions</returns>
-        private bool CanResetToRevision(GitRevision rev)
+        private bool CanResetToRevision(ObjectId guid)
         {
-            return rev.ObjectId != ObjectId.WorkTreeId
-                   && rev.ObjectId != ObjectId.CombinedDiffId;
+            return guid != ObjectId.WorkTreeId
+                   && guid != ObjectId.CombinedDiffId;
         }
 
         private void resetFileToToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
-            if (DiffFiles.Revision == null)
+            var items = DiffFiles.SelectedItemsWithParent;
+            var selectedIds = items.Select(it => it.SelectedRevision.ObjectId).Distinct().ToList();
+            if (selectedIds.Count == 0)
             {
                 resetFileToSelectedToolStripMenuItem.Visible = false;
                 resetFileToParentToolStripMenuItem.Visible = false;
                 return;
             }
 
-            if (!CanResetToRevision(DiffFiles.Revision))
+            if (selectedIds.Count() != 1 || !CanResetToRevision(selectedIds.FirstOrDefault()))
             {
                 resetFileToSelectedToolStripMenuItem.Visible = false;
             }
@@ -767,11 +783,11 @@ namespace GitUI.CommandsDialogs
             {
                 resetFileToSelectedToolStripMenuItem.Visible = true;
                 resetFileToSelectedToolStripMenuItem.Text =
-                    _selectedRevision + DescribeRevision(DiffFiles.Revision?.ObjectId, 50);
+                    _selectedRevision + DescribeRevision(selectedIds.FirstOrDefault(), 50);
             }
 
-            var parents = DiffFiles.SelectedItemParents.ToList();
-            if (parents.Count != 1 || !CanResetToRevision(parents.FirstOrDefault()))
+            var parentIds = DiffFiles.SelectedItemsWithParent.Select(i => i.ParentRevision.ObjectId).Distinct().ToList();
+            if (parentIds.Count != 1 || !CanResetToRevision(parentIds.FirstOrDefault()))
             {
                 resetFileToParentToolStripMenuItem.Visible = false;
             }
@@ -779,20 +795,19 @@ namespace GitUI.CommandsDialogs
             {
                 resetFileToParentToolStripMenuItem.Visible = true;
                 resetFileToParentToolStripMenuItem.Text =
-                    _firstRevision + DescribeRevision(parents.FirstOrDefault()?.ObjectId, 50);
+                    _firstRevision + DescribeRevision(parentIds.FirstOrDefault(), 50);
             }
         }
 
         private void saveAsToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            if (DiffFiles.Revision == null || DiffFiles.SelectedItem == null)
+            GitItemStatusWithParent item = DiffFiles.SelectedItemWithParent;
+            if (item?.SelectedRevision == null || item.Item == null)
             {
                 return;
             }
 
-            GitItemStatus item = DiffFiles.SelectedItem;
-
-            var fullName = _fullPathResolver.Resolve(item.Name);
+            var fullName = _fullPathResolver.Resolve(item.Item.Name);
             using (var fileDialog =
                 new SaveFileDialog
                 {
@@ -810,7 +825,7 @@ namespace GitUI.CommandsDialogs
 
                 if (fileDialog.ShowDialog(this) == DialogResult.OK)
                 {
-                    Module.SaveBlobAs(fileDialog.FileName, $"{DiffFiles.Revision?.Guid}:\"{item.Name}\"");
+                    Module.SaveBlobAs(fileDialog.FileName, $"{item.SelectedRevision?.Guid}:\"{item.Item.Name}\"");
                 }
             }
         }
@@ -819,24 +834,23 @@ namespace GitUI.CommandsDialogs
         {
             try
             {
-                if (DiffFiles.SelectedItem == null || DiffFiles.Revision == null || !DiffFiles.Revision.IsArtificial ||
+                var selected = DiffFiles.SelectedItemWithParent;
+                if (selected?.Item == null || selected.SelectedRevision == null || !selected.SelectedRevision.IsArtificial ||
                     MessageBox.Show(this, _deleteSelectedFiles.Text, _deleteSelectedFilesCaption.Text, MessageBoxButtons.YesNo,
-                                    MessageBoxIcon.Warning) !=
+                        MessageBoxIcon.Warning) !=
                     DialogResult.Yes)
                 {
                     return false;
                 }
 
-                var selectedItems = DiffFiles.SelectedItems;
-
                 // If any file is staged, it must be unstaged
-                Module.BatchUnstageFiles(selectedItems.Where(item => item.Staged == StagedStatus.Index));
+                Module.BatchUnstageFiles(DiffFiles.SelectedItemsWithParent.Where(item => item.Item.Staged == StagedStatus.Index).Select(item => item.Item));
 
                 DiffFiles.StoreNextIndexToSelect();
-                var items = DiffFiles.SelectedItems.Where(item => !item.IsSubmodule);
+                var items = DiffFiles.SelectedItemsWithParent.Where(item => !item.Item.IsSubmodule);
                 foreach (var item in items)
                 {
-                    var path = _fullPathResolver.Resolve(item.Name);
+                    var path = _fullPathResolver.Resolve(item.Item.Name);
                     bool isDir = (File.GetAttributes(path) & FileAttributes.Directory) == FileAttributes.Directory;
                     if (isDir)
                     {
@@ -866,7 +880,7 @@ namespace GitUI.CommandsDialogs
 
         private void diffCommitSubmoduleChanges_Click(object sender, EventArgs e)
         {
-            var submodules = DiffFiles.SelectedItems.Where(it => it.IsSubmodule).Select(it => it.Name).Distinct().ToList();
+            var submodules = DiffFiles.SelectedItemsWithParent.Where(it => it.Item.IsSubmodule).Select(it => it.Item.Name).Distinct().ToList();
 
             foreach (var name in submodules)
             {
@@ -879,7 +893,7 @@ namespace GitUI.CommandsDialogs
 
         private void diffResetSubmoduleChanges_Click(object sender, EventArgs e)
         {
-            var submodules = DiffFiles.SelectedItems.Where(it => it.IsSubmodule).Select(it => it.Name).Distinct().ToList();
+            var submodules = DiffFiles.SelectedItemsWithParent.Where(it => it.Item.IsSubmodule).Select(it => it.Item.Name).Distinct().ToList();
 
             // Show a form asking the user if they want to reset the changes.
             FormResetChanges.ActionEnum resetType = FormResetChanges.ShowResetDialog(this, true, true);
@@ -907,7 +921,7 @@ namespace GitUI.CommandsDialogs
 
         private void diffUpdateSubmoduleMenuItem_Click(object sender, EventArgs e)
         {
-            var submodules = DiffFiles.SelectedItems.Where(it => it.IsSubmodule).Select(it => it.Name).Distinct();
+            var submodules = DiffFiles.SelectedItemsWithParent.Where(it => it.Item.IsSubmodule).Select(it => it.Item.Name).Distinct().ToList();
 
             FormProcess.ShowDialog(FindForm() as FormBrowse, GitCommandHelpers.SubmoduleUpdateCmd(submodules));
             RefreshArtificial();
@@ -915,7 +929,7 @@ namespace GitUI.CommandsDialogs
 
         private void diffStashSubmoduleChangesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var submodules = DiffFiles.SelectedItems.Where(it => it.IsSubmodule).Select(it => it.Name).Distinct().ToList();
+            var submodules = DiffFiles.SelectedItemsWithParent.Where(it => it.Item.IsSubmodule).Select(it => it.Item.Name).Distinct().ToList();
 
             foreach (var name in submodules)
             {
@@ -928,7 +942,7 @@ namespace GitUI.CommandsDialogs
 
         private void diffSubmoduleSummaryMenuItem_Click(object sender, EventArgs e)
         {
-            var submodules = DiffFiles.SelectedItems.Where(it => it.IsSubmodule).Select(it => it.Name).Distinct().ToList();
+            var submodules = DiffFiles.SelectedItemsWithParent.Where(it => it.Item.IsSubmodule).Select(it => it.Item.Name).Distinct().ToList();
 
             string summary = "";
             foreach (var name in submodules)
@@ -960,7 +974,7 @@ namespace GitUI.CommandsDialogs
         /// <returns>true if executed</returns>
         private bool StageSelectedFile()
         {
-            if (DiffFiles.Revision.ObjectId == ObjectId.IndexId)
+            if (DiffFiles.SelectedItemWithParent.SelectedRevision.ObjectId == ObjectId.IndexId)
             {
                 return false;
             }
@@ -970,7 +984,7 @@ namespace GitUI.CommandsDialogs
                 StageOrCherryPickSelectedLines();
                 return true;
             }
-            else if (DiffFiles.Focused && DiffFiles.Revision.ObjectId == ObjectId.WorkTreeId)
+            else if (DiffFiles.Focused && DiffFiles.SelectedItemWithParent.SelectedRevision.ObjectId == ObjectId.WorkTreeId)
             {
                 // Only stage files for WorkTree (even if lines can be cherry-picked/staged)
                 StageFiles();
@@ -986,7 +1000,7 @@ namespace GitUI.CommandsDialogs
         /// <returns>true if executed</returns>
         private bool UnStageSelectedFile()
         {
-            if (DiffFiles.Revision.ObjectId != ObjectId.IndexId)
+            if (DiffFiles.SelectedItemWithParent.SelectedRevision.ObjectId != ObjectId.IndexId)
             {
                 return false;
             }
@@ -1011,13 +1025,13 @@ namespace GitUI.CommandsDialogs
         /// <returns>true if executed</returns>
         private bool ResetSelectedFiles()
         {
-            var parents = DiffFiles.SelectedItemParents.ToList();
+            var parentIds = DiffFiles.SelectedItemsWithParent.Select(it => it.SelectedRevision.ObjectId).ToList();
             if (DiffText.ContainsFocus && DiffText.SupportLinePatching)
             {
                 ResetOrRevertSelectedLines();
                 return true;
             }
-            else if (DiffFiles.Focused && parents.Count == 1 && CanResetToRevision(parents.FirstOrDefault()))
+            else if ((DiffFiles.Focused && parentIds.Count != 1) || !CanResetToRevision(parentIds.FirstOrDefault()))
             {
                 // Reset to first (parent)
                 ResetSelectedItemsTo(actsAsChild: false);
@@ -1031,8 +1045,8 @@ namespace GitUI.CommandsDialogs
         {
             _selectedDiffReloaded = true;
 
-            var item = DiffFiles?.SelectedItem;
-            if (item == null)
+            var item = DiffFiles?.SelectedItemWithParent;
+            if (item?.Item == null)
             {
                 return;
             }
@@ -1041,7 +1055,7 @@ namespace GitUI.CommandsDialogs
             if (IsWorkTreeOrIndexWithParent())
             {
                 // HEAD -> Index, Index -> Worktree allows unstaging/staging
-                if (DiffFiles.Revision.ObjectId == ObjectId.IndexId)
+                if (item.SelectedRevision.ObjectId == ObjectId.IndexId)
                 {
                     DiffText.CherryPickContextMenuEntry_Update(
                         Strings.UnstageSelectedLines,
@@ -1061,7 +1075,7 @@ namespace GitUI.CommandsDialogs
                     Properties.Images.ResetWorkingDirChanges,
                     GetShortcutKeyDisplayString(Command.ResetSelectedFiles));
 
-                if (item.IsNew && !FileHelper.IsImage(item.Name))
+                if (item.Item.IsNew && !FileHelper.IsImage(item.Item.Name))
                 {
                     // Add visibility, not for normal file displays
                     DiffText.CherryPickContextMenuEntry_Visible();
@@ -1089,19 +1103,17 @@ namespace GitUI.CommandsDialogs
         /// <returns>If 'artificial' handling</returns>
         private bool IsWorkTreeOrIndexWithParent()
         {
-            if (DiffFiles.SelectedItem == null ||
-                DiffFiles.Revision?.ObjectId == null ||
-                !DiffFiles.Revision.IsArtificial)
+            var item = DiffFiles.SelectedItemWithParent;
+            if (item?.Item == null ||
+                item.SelectedRevision?.ObjectId == null ||
+                !item.SelectedRevision.IsArtificial)
             {
                 return false;
             }
 
-            var selectedRev = DiffFiles.Revision;
-            var firstId = DiffFiles.SelectedItemParent?.ObjectId;
-
-            return (selectedRev.ObjectId == ObjectId.WorkTreeId
-                    || selectedRev.ObjectId == ObjectId.IndexId)
-                   && selectedRev.FirstParentGuid == firstId;
+            return (item.SelectedRevision.ObjectId == ObjectId.WorkTreeId
+                    || item.SelectedRevision.ObjectId == ObjectId.IndexId)
+                   && item.SelectedRevision.FirstParentGuid == item.ParentRevision.ObjectId;
         }
 
         private void StageSelectedLinesToolStripMenuItemClick(object sender, EventArgs e)
@@ -1118,7 +1130,7 @@ namespace GitUI.CommandsDialogs
             }
 
             // File no longer selected
-            if (DiffFiles.SelectedItem == null)
+            if (DiffFiles.SelectedItemWithParent == null)
             {
                 return;
             }
@@ -1176,12 +1188,12 @@ namespace GitUI.CommandsDialogs
         private void StageSelectedLines()
         {
             byte[] patch;
-            var item = DiffFiles.SelectedItem;
-            var currentItemStaged = DiffFiles.Revision.ObjectId == ObjectId.IndexId;
-            if (item.IsNew)
+            var item = DiffFiles.SelectedItemWithParent;
+            var currentItemStaged = item.SelectedRevision.ObjectId == ObjectId.IndexId;
+            if (item.Item.IsNew)
             {
-                var treeGuid = currentItemStaged ? item.TreeGuid?.ToString() : null;
-                patch = PatchManager.GetSelectedLinesAsNewPatch(Module, item.Name,
+                var treeGuid = currentItemStaged ? item.Item.TreeGuid?.ToString() : null;
+                patch = PatchManager.GetSelectedLinesAsNewPatch(Module, item.Item.Name,
                     DiffText.GetText(), DiffText.GetSelectionPosition(),
                     DiffText.GetSelectionLength(), DiffText.Encoding, false, DiffText.FilePreamble, treeGuid);
             }
@@ -1190,7 +1202,7 @@ namespace GitUI.CommandsDialogs
                 patch = PatchManager.GetSelectedLinesAsPatch(
                     DiffText.GetText(),
                     DiffText.GetSelectionPosition(), DiffText.GetSelectionLength(),
-                    currentItemStaged, DiffText.Encoding, item.IsNew);
+                    currentItemStaged, DiffText.Encoding, item.Item.IsNew);
             }
 
             if (patch == null || patch.Length == 0)
@@ -1224,7 +1236,7 @@ namespace GitUI.CommandsDialogs
             }
 
             // File no longer selected
-            if (DiffFiles.SelectedItem == null)
+            if (DiffFiles.SelectedItemWithParent == null)
             {
                 return;
             }
@@ -1250,12 +1262,12 @@ namespace GitUI.CommandsDialogs
         private void ResetSelectedLines()
         {
             byte[] patch;
-            var item = DiffFiles.SelectedItem;
-            var currentItemStaged = DiffFiles.Revision.ObjectId == ObjectId.IndexId;
-            if (item.IsNew)
+            var item = DiffFiles.SelectedItemWithParent;
+            var currentItemStaged = item.SelectedRevision.ObjectId == ObjectId.IndexId;
+            if (item.Item.IsNew)
             {
-                var treeGuid = currentItemStaged ? item.TreeGuid?.ToString() : null;
-                patch = PatchManager.GetSelectedLinesAsNewPatch(Module, item.Name,
+                var treeGuid = currentItemStaged ? item.Item.TreeGuid?.ToString() : null;
+                patch = PatchManager.GetSelectedLinesAsNewPatch(Module, item.Item.Name,
                     DiffText.GetText(), DiffText.GetSelectionPosition(), DiffText.GetSelectionLength(),
                     DiffText.Encoding, true, DiffText.FilePreamble, treeGuid);
             }
@@ -1264,7 +1276,7 @@ namespace GitUI.CommandsDialogs
                 patch = PatchManager.GetSelectedLinesAsPatch(
                     DiffText.GetText(),
                     DiffText.GetSelectionPosition(), DiffText.GetSelectionLength(),
-                    currentItemStaged, DiffText.Encoding, item.IsNew);
+                    currentItemStaged, DiffText.Encoding, item.Item.IsNew);
             }
             else
             {

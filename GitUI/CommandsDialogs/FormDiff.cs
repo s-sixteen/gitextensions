@@ -118,7 +118,7 @@ namespace GitUI.CommandsDialogs
                 return;
             }
 
-            var baseCommit = (ckCompareToMergeBase.Checked ? _mergeBase : _baseRevision) ?? DiffFiles.SelectedItemParent;
+            var baseCommit = (ckCompareToMergeBase.Checked ? _mergeBase : _baseRevision) ?? DiffFiles.SelectedItemWithParent.ParentRevision;
 
             DiffText.ViewChangesAsync(baseCommit?.ObjectId, _headRevision, DiffFiles.SelectedItem, string.Empty);
         }
@@ -146,7 +146,7 @@ namespace GitUI.CommandsDialogs
 
             foreach (var itemWithParent in DiffFiles.SelectedItemsWithParent)
             {
-                var revs = new[] { DiffFiles.Revision, itemWithParent.ParentRevision };
+                var revs = new[] { itemWithParent.SelectedRevision, itemWithParent.ParentRevision };
                 UICommands.OpenWithDifftool(this, revs, itemWithParent.Item.Name, itemWithParent.Item.OldName, diffKind, itemWithParent.Item.IsTracked);
             }
 
@@ -274,16 +274,16 @@ namespace GitUI.CommandsDialogs
 
         private ContextMenuDiffToolInfo GetContextMenuDiffToolInfo()
         {
-            bool firstIsParent = _revisionTester.AllFirstAreParentsToSelected(DiffFiles.SelectedItemParents.Select(item => item.ObjectId).ToList(), DiffFiles.Revision);
+            var parentIds = DiffFiles.SelectedItemsWithParent.Select(i => i.ParentRevision.ObjectId).Distinct().ToList();
+            bool firstIsParent = _revisionTester.AllFirstAreParentsToSelected(parentIds, _headRevision);
             bool localExists = _revisionTester.AnyLocalFileExists(DiffFiles.SelectedItemsWithParent.Select(i => i.Item));
 
-            var selectedItemParentRevs = DiffFiles.SelectedItemParents.Select(i => i.ObjectId).ToList();
             bool allAreNew = DiffFiles.SelectedItemsWithParent.All(i => i.Item.IsNew);
             bool allAreDeleted = DiffFiles.SelectedItemsWithParent.All(i => i.Item.IsDeleted);
 
             return new ContextMenuDiffToolInfo(
                 _headRevision,
-                selectedItemParentRevs,
+                parentIds,
                 allAreNew: allAreNew,
                 allAreDeleted: allAreDeleted,
                 firstIsParent: firstIsParent,

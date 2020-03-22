@@ -42,10 +42,10 @@ namespace GitUI.UserControls
                 DiffFiles.SetDiffs(new[] { revision });
                 if (fileToSelect != null)
                 {
-                    var itemToSelect = DiffFiles.AllItems.FirstOrDefault(i => i.Name == fileToSelect);
+                    var itemToSelect = DiffFiles.AllItems.FirstOrDefault(i => i.Item.Name == fileToSelect);
                     if (itemToSelect != null)
                     {
-                        DiffFiles.SelectedItem = itemToSelect;
+                        DiffFiles.SelectedItem = itemToSelect.Item;
                     }
                 }
 
@@ -80,7 +80,7 @@ namespace GitUI.UserControls
                 return;
             }
 
-            if (DiffFiles.SelectedItemParent?.ObjectId == ObjectId.CombinedDiffId)
+            if (DiffFiles.SelectedItemWithParent.ParentRevision?.ObjectId == ObjectId.CombinedDiffId)
             {
                 var diffOfConflict = Module.GetCombinedDiffContent(DiffFiles.Revision, DiffFiles.SelectedItem.Name,
                     DiffText.GetExtraDiffArguments(), DiffText.Encoding);
@@ -98,7 +98,8 @@ namespace GitUI.UserControls
                 return;
             }
 
-            await DiffText.ViewChangesAsync(DiffFiles.SelectedItemParent?.ObjectId, DiffFiles.Revision, DiffFiles.SelectedItem, string.Empty);
+            var item = DiffFiles.SelectedItemWithParent;
+            await DiffText.ViewChangesAsync(item.ParentRevision?.ObjectId, item.SelectedRevision, item.Item, string.Empty);
         }
     }
 }

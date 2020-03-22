@@ -176,8 +176,8 @@ namespace GitUI
         // Properties
 
         [Browsable(false)]
-        public IEnumerable<GitItemStatus> AllItems =>
-            FileStatusListView.ItemTags<GitItemStatusWithParent>().Select(i => i.Item);
+        public IEnumerable<GitItemStatusWithParent> AllItems =>
+            FileStatusListView.ItemTags<GitItemStatusWithParent>();
 
         public int AllItemsCount => FileStatusListView.Items.Count;
 
@@ -247,7 +247,7 @@ namespace GitUI
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Browsable(false)]
         public IReadOnlyList<GitItemStatus> GitItemFilteredStatuses =>
-            AllItems.AsReadOnlyList();
+            AllItems.Select(i => i.Item).AsReadOnlyList();
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Browsable(false)]
@@ -353,19 +353,6 @@ namespace GitUI
                 }
             }
         }
-
-        [CanBeNull]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        [Browsable(false)]
-        public GitRevision SelectedItemParent
-            => SelectedItemWithParent?.ParentRevision;
-
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        [Browsable(false)]
-        public IEnumerable<GitRevision> SelectedItemParents
-            => SelectedItemsWithParent.Select(i => i.ParentRevision)
-                .Where(r => r != null)
-                .Distinct();
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Browsable(false)]
