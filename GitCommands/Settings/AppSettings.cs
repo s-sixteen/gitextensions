@@ -1688,6 +1688,18 @@ namespace GitCommands
             set => SetBool("Blame.ShowOriginalFilePath", value);
         }
 
+        public static bool ContinuousScrollToNextFile
+        {
+            get => GetBool("continuousscrolltonextfile", true);
+            set => SetBool("continuousscrolltonextfile", value);
+        }
+
+        public static int AutoViewScrollDelay
+        {
+            get => GetInt("autoviewscrolldelay", 600);
+            set => SetInt("autoviewscrolldelay", value);
+        }
+
         public static bool IsPortable()
         {
             return Properties.Settings.Default.IsPortable;

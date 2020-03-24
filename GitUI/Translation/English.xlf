@@ -1310,6 +1310,10 @@ Please make sure git (Git for Windows or cygwin) is installed or set the correct
         <source>Cherry pick selected line(s)</source>
         <target />
       </trans-unit>
+      <trans-unit id="continuousScrollToolStripMenuItem.Text">
+        <source>Continuous scroll to next file without ALT button</source>
+        <target />
+      </trans-unit>
       <trans-unit id="copyNewVersionToolStripMenuItem.Text">
         <source>Copy new version</source>
         <target />

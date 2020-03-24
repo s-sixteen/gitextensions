@@ -68,7 +68,7 @@ namespace GitUI.CommandsDialogs
             this.fileHistoryDiffToolstripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.blameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.findInDiffToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.DiffText = new GitUI.Editor.FileViewer();
+            this.DiffText = new GitUI.Editor.FileViewer(supportContinuousScrollToNextFile: true);
             this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.DiffSplitContainer)).BeginInit();
             this.DiffSplitContainer.Panel1.SuspendLayout();

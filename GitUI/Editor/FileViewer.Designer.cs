@@ -34,6 +34,7 @@ namespace GitUI.Editor
             this.showEntireFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.treatAllFilesAsTextToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.continuousScrollToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showNonprintableCharactersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.goToLineToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileviewerToolbar = new GitUI.ToolStripEx();
@@ -78,6 +79,7 @@ namespace GitUI.Editor
             this.showEntireFileToolStripMenuItem,
             this.toolStripSeparator2,
             this.treatAllFilesAsTextToolStripMenuItem,
+            this.continuousScrollToolStripMenuItem,
             this.showNonprintableCharactersToolStripMenuItem,
             this.findToolStripMenuItem,
             this.goToLineToolStripMenuItem});
@@ -189,6 +191,14 @@ namespace GitUI.Editor
             this.treatAllFilesAsTextToolStripMenuItem.Size = new System.Drawing.Size(243, 22);
             this.treatAllFilesAsTextToolStripMenuItem.Text = "Treat all files as text";
             this.treatAllFilesAsTextToolStripMenuItem.Click += new System.EventHandler(this.TreatAllFilesAsTextToolStripMenuItemClick);
+            // 
+            // continuousScrollToolStripMenuItem
+            // 
+            this.continuousScrollToolStripMenuItem.Image = global::GitUI.Properties.Images.UiScrollBar;
+            this.continuousScrollToolStripMenuItem.Name = "continuousScrollToolStripMenuItem";
+            this.continuousScrollToolStripMenuItem.Size = new System.Drawing.Size(243, 22);
+            this.continuousScrollToolStripMenuItem.Text = "Continuous scroll to next file without ALT button";
+            this.continuousScrollToolStripMenuItem.Click += new System.EventHandler(this.ContinuousScrollToolStripMenuItemClick);
             // 
             // showNonprintableCharactersToolStripMenuItem
             // 
@@ -453,6 +463,7 @@ namespace GitUI.Editor
         private System.Windows.Forms.ToolStripButton showEntireFileButton;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         private System.Windows.Forms.ToolStripButton showNonPrintChars;
+        private System.Windows.Forms.ToolStripMenuItem continuousScrollToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showNonprintableCharactersToolStripMenuItem;
         private System.Windows.Forms.ToolStripButton ignoreWhitespaceAtEol;
         private System.Windows.Forms.ToolStripButton ignoreWhiteSpaces;

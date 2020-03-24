@@ -56,6 +56,25 @@ namespace GitUI.CommandsDialogs
             _gitRevisionTester = new GitRevisionTester(_fullPathResolver);
             _revisionDiffContextMenuController = new FileStatusListContextMenuController();
             DiffText.CherryPickContextMenuEntry_OverrideClick(StageSelectedLinesToolStripMenuItemClick, ResetSelectedLinesToolStripMenuItemClick);
+            DiffText.TopScrollReached += DiffText_TopScrollReached;
+            DiffText.BottomScrollReached += DiffText_BottomScrollReached;
+        }
+
+        private void DiffText_TopScrollReached(object sender, EventArgs e)
+        {
+            if (Control.ModifierKeys == Keys.Alt || AppSettings.ContinuousScrollToNextFile)
+            {
+                DiffFiles.SelectPreviousVisibleItem();
+                DiffText.ScrollToBottom();
+            }
+        }
+
+        private void DiffText_BottomScrollReached(object sender, EventArgs e)
+        {
+            if (Control.ModifierKeys == Keys.Alt || AppSettings.ContinuousScrollToNextFile)
+            {
+                DiffFiles.SelectNextVisibleItem();
+            }
         }
 
         public void RefreshArtificial()

@@ -37,6 +37,8 @@ namespace GitUI.Editor
         public event EventHandler<SelectedLineEventArgs> SelectedLineChanged;
         public event EventHandler HScrollPositionChanged;
         public event EventHandler VScrollPositionChanged;
+        public event EventHandler BottomScrollReached;
+        public event EventHandler TopScrollReached;
         public event EventHandler RequestDiffView;
         public new event EventHandler TextChanged;
         public event EventHandler TextLoaded;
@@ -73,7 +75,7 @@ namespace GitUI.Editor
         [DefaultValue(true)]
         private bool ShowSyntaxHighlightingInDiff { get; set; }
 
-        public FileViewer()
+        public FileViewer(bool supportContinuousScrollToNextFile = false)
         {
             TreatAllFilesAsText = false;
             ShowEntireFile = false;
@@ -88,6 +90,8 @@ namespace GitUI.Editor
             internalFileViewer.MouseMove += (_, e) => OnMouseMove(e);
             internalFileViewer.KeyUp += (_, e) => OnKeyUp(e);
             internalFileViewer.EscapePressed += () => EscapePressed?.Invoke();
+            internalFileViewer.BottomScrollReached += _internalFileViewer_BottomScrollReached;
+            internalFileViewer.TopScrollReached += _internalFileViewer_TopScrollReached;
 
             _async = new AsyncLoader();
             _async.LoadingError +=
@@ -117,6 +121,10 @@ namespace GitUI.Editor
             showEntireFileButton.Checked = ShowEntireFile;
             showEntireFileToolStripMenuItem.Checked = ShowEntireFile;
             SetStateOfContextLinesButtons();
+
+            continuousScrollToolStripMenuItem.Visible = supportContinuousScrollToNextFile;
+            continuousScrollToolStripMenuItem.Image = Images.UiScrollBar.AdaptLightness();
+            continuousScrollToolStripMenuItem.Checked = AppSettings.ContinuousScrollToNextFile;
 
             showNonPrintChars.Image = Images.ShowWhitespace.AdaptLightness();
             showNonprintableCharactersToolStripMenuItem.Image = showNonPrintChars.Image;
@@ -321,6 +329,22 @@ namespace GitUI.Editor
         public void ReloadHotkeys()
         {
             Hotkeys = HotkeySettingsManager.LoadHotkeys(HotkeySettingsName);
+        }
+
+        private void _internalFileViewer_BottomScrollReached(object sender, EventArgs e)
+        {
+            if (BottomScrollReached != null)
+            {
+                BottomScrollReached(sender, e);
+            }
+        }
+
+        private void _internalFileViewer_TopScrollReached(object sender, EventArgs e)
+        {
+            if (TopScrollReached != null)
+            {
+                TopScrollReached(sender, e);
+            }
         }
 
         public ToolStripSeparator AddContextMenuSeparator()
@@ -1296,6 +1320,12 @@ namespace GitUI.Editor
             ////TextEditor.ActiveTextAreaControl.TextArea.TextView.FirstVisibleLine = 0;
         }
 
+        private void ContinuousScrollToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            continuousScrollToolStripMenuItem.Checked = !continuousScrollToolStripMenuItem.Checked;
+            AppSettings.ContinuousScrollToNextFile = continuousScrollToolStripMenuItem.Checked;
+        }
+
         private void ShowNonprintableCharactersToolStripMenuItemClick(object sender, EventArgs e)
         {
             showNonprintableCharactersToolStripMenuItem.Checked = !showNonprintableCharactersToolStripMenuItem.Checked;
@@ -1631,6 +1661,11 @@ namespace GitUI.Editor
 
             public ToolStripButton IgnoreAllWhitespacesButton => _fileViewer.ignoreAllWhitespaces;
             public ToolStripMenuItem IgnoreAllWhitespacesMenuItem => _fileViewer.ignoreAllWhitespaceChangesToolStripMenuItem;
+        }
+
+        public void ScrollToBottom()
+        {
+            internalFileViewer.ScrollToBottom();
         }
     }
 }
