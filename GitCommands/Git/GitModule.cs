@@ -2422,8 +2422,8 @@ namespace GitCommands
 
         public IReadOnlyList<GitItemStatus> GetDiffFilesWithSubmodulesStatus(ObjectId firstId, ObjectId secondId, ObjectId parentToSecond)
         {
-            var status = GetDiffFiles(firstId.ToString(), secondId.ToString(), parentToSecond.ToString());
-            GetSubmoduleStatus(status, firstId.ToString(), secondId.ToString());
+            var status = GetDiffFiles(firstId?.ToString(), secondId?.ToString(), parentToSecond?.ToString());
+            GetSubmoduleStatus(status, firstId?.ToString(), secondId?.ToString());
             return status;
         }
 
