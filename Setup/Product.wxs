@@ -655,7 +655,6 @@
       <Component Id="Gerrit.dll" Guid="8890FF91-05DA-5F64-91BC-C22112C7EC0F">
         <RemoveFile Name="Gerrit.dll" Id="Gerrit.dll" On="both" />
       </Component>
-
       <Component Id="FindLargeFiles.dll" Guid="*">
         <File Source="$(var.ArtifactsPublishPath)\Plugins\FindLargeFiles.dll" />
       </Component>
@@ -1781,7 +1780,7 @@
           <ComponentRef Id="Polish.Plugins.xlf" />
           <ComponentRef Id="Polish.gif" />
         </Feature>
-        <Feature Id="Portuguese_Brazil" Title="Portuguese(Brazil)" Level="1">
+        <Feature Id="Portuguese_Brazil" Title="Portuguese (Brazil)" Level="1">
           <ComponentRef Id="Portuguese_Brazil.xlf" />
           <ComponentRef Id="Portuguese_Brazil.Plugins.xlf" />
           <ComponentRef Id="Portuguese_Brazil.gif" />
@@ -1791,12 +1790,12 @@
           <ComponentRef Id="Russian.Plugins.xlf" />
           <ComponentRef Id="Russian.gif" />
         </Feature>
-        <Feature Id="SimplifiedChinese" Title="SimplifiedChinese" Level="1">
+        <Feature Id="SimplifiedChinese" Title="Simplified Chinese" Level="1">
           <ComponentRef Id="SimplifiedChinese.xlf" />
           <ComponentRef Id="SimplifiedChinese.Plugins.xlf" />
           <ComponentRef Id="SimplifiedChinese.gif" />
         </Feature>
-        <Feature Id="Spanish_Argentina" Title="Spanish(Argentina)" Level="1">
+        <Feature Id="Spanish_Argentina" Title="Spanish (Argentina)" Level="1">
           <ComponentRef Id="Spanish_Argentina.xlf" />
           <ComponentRef Id="Spanish_Argentina.Plugins.xlf" />
           <ComponentRef Id="Spanish_Argentina.gif" />
