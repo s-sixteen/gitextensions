@@ -8,6 +8,11 @@
     ============================================================
     -->
   <Target Name="_PublishTranslations">
+    <_GetAvailableTranslationsCodeTask
+          TranslationFolder="$(TargetDir)Translation\">
+      <Output ItemName="Translations" TaskParameter="Output"/>
+    </_GetAvailableTranslationsCodeTask>
+
     <Copy SourceFiles="@(Translations)" DestinationFolder="$(PublishDir)Translation" ContinueOnError="false" />
   </Target>
 
@@ -51,7 +56,6 @@
     Creates a portable archive.
     ============================================================
     -->
-
   <Target Name="CreatePortable" AfterTargets="Publish" DependsOnTargets="_RetrieveCurrentBuildVersion;_PublishTranslations;_PublishExtraDependecies">
     <PropertyGroup>
       <_AppPPluginsublishDir>$([MSBuild]::NormalizeDirectory('$(AppPublishDir)', 'Plugins'))</_AppPPluginsublishDir>
@@ -100,10 +104,22 @@
             Value="False" />
   </Target>
 
-  <!-- <Target Name="CreateMsi" AfterTargets="CreatePortable">
-    <_GetPluginAssembliesCodeTask Solution="$(SolutionPath)">
-      <Output ItemName="PluginAssemblies" TaskParameter="Output"/>
-    </_GetPluginAssembliesCodeTask>
-  </Target> -->
+  <!--
+    ============================================================
+                       CreateMsi
+
+    Creates an MSI.
+    ============================================================
+    -->
+  <Target Name="CreateMsi">
+   <!-- AfterTargets="CreatePortable"> -->
+    <MSBuild 
+        Projects="$(ProjectDir)\..\Setup\Setup.wixproj"
+        Properties="Configuration=$(Configuration);Platform=x86;Version=$(Version);ArtifactsBinPath=$(ArtifactsBinDir);ArtifactsPublishPath=$(AppPublishDir)"
+        StopOnFirstFailure="true"
+        />
+  </Target>
 
 </Project>
+<!-- 
+/p:Version=4.0.0.0 /p:NumericVersion=4.0.0.0 /p:Configuration=Debug /p:ArtifactsPublishPath=C:\Development\gitextensions\artifacts\publish\Debug\GitExtensions /p:ArtifactsBinPath=C:\Development\gitextensions\artifacts\bin /t:Rebuild /v:m Setup.wixproj -->
