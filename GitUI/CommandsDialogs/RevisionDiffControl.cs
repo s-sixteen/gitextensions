@@ -189,11 +189,12 @@ namespace GitUI.CommandsDialogs
 
         private void SetDiffs(IReadOnlyList<GitRevision> revisions)
         {
-            var oldDiffItem = DiffFiles.SelectedItemWithParent;
+            var item = DiffFiles.SelectedItemWithParent;
+            var oldDiffItem = DiffFiles.FirstGroupItems.Contains(item) ? item : null;
             DiffFiles.SetDiffs(revisions, _revisionGrid.GetRevision);
 
             // Try to restore previous item
-            if (oldDiffItem != null && DiffFiles.GitItemStatuses.Any(i => i.Name.Equals(oldDiffItem.Item.Name)))
+            if (oldDiffItem != null && DiffFiles.FirstGroupItems.Any(i => i.Item.Name.Equals(oldDiffItem.Item.Name)))
             {
                 DiffFiles.SelectedItem = oldDiffItem.Item;
             }

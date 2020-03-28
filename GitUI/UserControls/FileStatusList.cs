@@ -384,6 +384,19 @@ namespace GitUI
             }
         }
 
+        public IEnumerable<GitItemStatusWithParent> FirstGroupItems
+        {
+            get
+            {
+                if (FileStatusListView.Groups.Count == 0)
+                {
+                    return new List<GitItemStatusWithParent>();
+                }
+
+                return from ListViewItem item in FileStatusListView.Groups[0].Items select item.Tag<GitItemStatusWithParent>();
+            }
+        }
+
         [DefaultValue(true)]
         public bool SelectFirstItemOnSetItems { get; set; }
 
