@@ -100,4 +100,10 @@
             Value="False" />
   </Target>
 
+  <!-- <Target Name="CreateMsi" AfterTargets="CreatePortable">
+    <_GetPluginAssembliesCodeTask Solution="$(SolutionPath)">
+      <Output ItemName="PluginAssemblies" TaskParameter="Output"/>
+    </_GetPluginAssembliesCodeTask>
+  </Target> -->
+
 </Project>

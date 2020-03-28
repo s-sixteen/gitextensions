@@ -518,7 +518,7 @@
       <Component Id="System.Xml.XPath.XDocument.dll" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\System.Xml.XPath.XDocument.dll" />
       </Component>
-      <!--Remove unused dll, installed in versions <= 2.31-->
+      <!-- Remove unused dll, installed in versions <= 2.31 -->
       <Component Id="GithubSharp.Core.dll" Guid="08F2D539-54CE-4895-ACA5-A7FBA73CA172">
         <RemoveFile Name="GithubSharp.Core.dll" Id="GithubSharp.Core.dll" On="both" />
       </Component>
@@ -624,9 +624,6 @@
       <Component Id="GitFlow.dll" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Plugins\GitFlow.dll" />
       </Component>
-      <Component Id="Gerrit.dll" Guid="*">
-        <File Source="..\GitExtensions\bin\$(var.Configuration)\Plugins\Gerrit.dll" />
-      </Component>
       <Component Id="ReleaseNotesGenerator.dll" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Plugins\ReleaseNotesGenerator.dll" />
       </Component>
@@ -642,7 +639,7 @@
       <Component Id="NString.dll" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Plugins\NString.dll" />
       </Component>
-      <!--Remove unused dll, installed in versions <= 2.31-->
+      <!-- Remove unused dll, installed in versions <= 2.31 -->
       <Component Id="Github.dll" Guid="0DA13691-140A-4490-8B4C-8AF537DAEB67">
         <RemoveFile Name="Github.dll" Id="Github.dll" On="both" />
         <RemoveFile Name="System.Net.Http.dll" Id="System.Net.Http.dll" On="both" />
@@ -654,6 +651,11 @@
         <RemoveRegistryValue Id="GithubPassword" Root="HKCU" Key="$(var.AppRegKey)" Name="Githubpassword" />
         <RemoveRegistryValue Id="GithubAccess" Root="HKCU" Key="$(var.AppRegKey)" Name="Githubpreferred access method" />
       </Component>
+      <!-- Remove unused dll, installed in versions < 4.0 -->
+      <Component Id="Gerrit.dll" Guid="8890FF91-05DA-5F64-91BC-C22112C7EC0F">
+        <RemoveFile Name="Gerrit.dll" Id="Gerrit.dll" On="both" />
+      </Component>
+
       <Component Id="FindLargeFiles.dll" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Plugins\FindLargeFiles.dll" />
       </Component>
@@ -843,13 +845,13 @@
       <Component Id="Polish.Plugins.xlf" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Translation\Polish.Plugins.xlf" />
       </Component>
-      <Component Id="Portuguese(Brazil).gif" Guid="*">
+      <Component Id="Portuguese_Brazil.gif" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Translation\Portuguese (Brazil).gif" />
       </Component>
-      <Component Id="Portuguese(Brazil).xlf" Guid="*">
+      <Component Id="Portuguese_Brazil.xlf" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Translation\Portuguese (Brazil).xlf" />
       </Component>
-      <Component Id="Portuguese(Brazil).Plugins.xlf" Guid="*">
+      <Component Id="Portuguese_Brazil.Plugins.xlf" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Translation\Portuguese (Brazil).Plugins.xlf" />
       </Component>
       <Component Id="Russian.gif" Guid="*">
@@ -870,13 +872,13 @@
       <Component Id="SimplifiedChinese.Plugins.xlf" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Translation\Simplified Chinese.Plugins.xlf" />
       </Component>
-      <Component Id="Spanish(Argentina).gif" Guid="*">
+      <Component Id="Spanish_Argentina.gif" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Translation\Spanish (Argentina).gif" />
       </Component>
-      <Component Id="Spanish(Argentina).xlf" Guid="*">
+      <Component Id="Spanish_Argentina.xlf" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Translation\Spanish (Argentina).xlf" />
       </Component>
-      <Component Id="Spanish(Argentina).Plugins.xlf" Guid="*">
+      <Component Id="Spanish_Argentina.Plugins.xlf" Guid="*">
         <File Source="..\GitExtensions\bin\$(var.Configuration)\Translation\Spanish (Argentina).Plugins.xlf" />
       </Component>
       <Component Id="Spanish.gif" Guid="*">
@@ -1604,10 +1606,12 @@
       <ComponentRef Id="EasyHook64.dll" />
       <ComponentRef Id="win10default.css" />
       <ComponentRef Id="dark.css" />
-      <!--Remove unused dll, installed in versions <= 2.31-->
+      <!-- Remove unused dll, installed in versions <= 2.31 -->
       <ComponentRef Id="GithubSharp.Core.dll" />
-      <!--Remove unused dll, installed in versions <= 2.31-->
+      <!-- Remove unused dll, installed in versions <= 2.31 -->
       <ComponentRef Id="Github.dll" />
+      <!-- Remove unused dll, installed in versions < 4.0 -->
+      <ComponentRef Id="Gerrit.dll" />
       <!-- PluginManager -->
       <ComponentRef Id="GitExtensions.PluginManager.dll" />
       <ComponentRef Id="PackageManager" />
@@ -1628,10 +1632,6 @@
         </Feature>
         <Feature Id="FindLargeFiles" Title="Find large files" Level="1">
           <ComponentRef Id="FindLargeFiles.dll" />
-        </Feature>
-        <Feature Id="Gerrit" Title="Gerrit code review" Level="1">
-          <ComponentRef Id="Gerrit.dll" />
-          <ComponentRef Id="Newtonsoft.Json.dll" />
         </Feature>
         <Feature Id="Github" Title="Github integration" Level="1">
           <ComponentRef Id="Github3.dll" />
@@ -1781,10 +1781,10 @@
           <ComponentRef Id="Polish.Plugins.xlf" />
           <ComponentRef Id="Polish.gif" />
         </Feature>
-        <Feature Id="Portuguese(Brazil)" Title="Portuguese(Brazil)" Level="1">
-          <ComponentRef Id="Portuguese(Brazil).xlf" />
-          <ComponentRef Id="Portuguese(Brazil).Plugins.xlf" />
-          <ComponentRef Id="Portuguese(Brazil).gif" />
+        <Feature Id="Portuguese_Brazil" Title="Portuguese(Brazil)" Level="1">
+          <ComponentRef Id="Portuguese_Brazil.xlf" />
+          <ComponentRef Id="Portuguese_Brazil.Plugins.xlf" />
+          <ComponentRef Id="Portuguese_Brazil.gif" />
         </Feature>
         <Feature Id="Russian" Title="Russian" Level="1">
           <ComponentRef Id="Russian.xlf" />
@@ -1796,10 +1796,10 @@
           <ComponentRef Id="SimplifiedChinese.Plugins.xlf" />
           <ComponentRef Id="SimplifiedChinese.gif" />
         </Feature>
-        <Feature Id="Spanish(Argentina)" Title="Spanish(Argentina)" Level="1">
-          <ComponentRef Id="Spanish(Argentina).xlf" />
-          <ComponentRef Id="Spanish(Argentina).Plugins.xlf" />
-          <ComponentRef Id="Spanish(Argentina).gif" />
+        <Feature Id="Spanish_Argentina" Title="Spanish(Argentina)" Level="1">
+          <ComponentRef Id="Spanish_Argentina.xlf" />
+          <ComponentRef Id="Spanish_Argentina.Plugins.xlf" />
+          <ComponentRef Id="Spanish_Argentina.gif" />
         </Feature>
         <Feature Id="Spanish" Title="Spanish" Level="1">
           <ComponentRef Id="Spanish.xlf" />
