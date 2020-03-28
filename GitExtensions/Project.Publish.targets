@@ -111,8 +111,7 @@
     Creates an MSI.
     ============================================================
     -->
-  <Target Name="CreateMsi">
-   <!-- AfterTargets="CreatePortable"> -->
+  <Target Name="CreateMsi" AfterTargets="CreatePortable">
     <MSBuild 
         Projects="$(ProjectDir)\..\Setup\Setup.wixproj"
         Properties="Configuration=$(Configuration);Platform=x86;Version=$(Version);ArtifactsBinPath=$(ArtifactsBinDir);ArtifactsPublishPath=$(AppPublishDir)"
