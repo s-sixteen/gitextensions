@@ -2443,6 +2443,17 @@ namespace GitCommands
 
             var resultCollection = GitCommandHelpers.GetDiffChangedFilesFromString(this, output, stagedStatus).ToList();
 
+            if (IsGitErrorMessage(output))
+            {
+                // No simple way to pass the error message, create fake file
+                string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
+                Regex r = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch)));
+                resultCollection.Add(new GitItemStatus()
+                {
+                    Name = r.Replace(output, "_")
+                });
+            }
+
             if (firstRevision == GitRevision.WorkTreeGuid || secondRevision == GitRevision.WorkTreeGuid)
             {
                 // For worktree the untracked must be added too
