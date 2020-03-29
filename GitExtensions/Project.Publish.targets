@@ -131,13 +131,19 @@
     ============================================================
     -->
   <Target Name="CreateMsi" AfterTargets="CreatePortable">
+    <PropertyGroup>
+      <_PublishMsiVersionSuffix>-$(CurrentBuildVersion.ToString())</_PublishMsiVersionSuffix>
+      <_PublishMsiCommitHashSuffix Condition="'$(GitCommit)' != ''">-$(GitCommit)</_PublishMsiCommitHashSuffix>
+      <_PublishMsiCommitHashSuffix Condition="'$(env:APPVEYOR_REPO_COMMIT)' != ''">-$(env:APPVEYOR_REPO_COMMIT)</_PublishMsiCommitHashSuffix>
+      <_PublishMsiFileName>GitExtensions-$(_PublishPortableVersionSuffix)$(_PublishPortableCommitHashSuffix)</_PublishMsiFileName>
+      <_PublishMsiPath>$([MSBuild]::NormalizePath('$(ArtifactsPublishDir)'))</_PublishMsiPath>
+    </PropertyGroup>
+
     <MSBuild 
         Projects="$(ProjectDir)\..\Setup\Setup.wixproj"
-        Properties="Configuration=$(Configuration);Platform=x86;Version=$(Version);ArtifactsBinPath=$(ArtifactsBinDir);ArtifactsPublishPath=$(AppPublishDir)"
+        Properties="Configuration=$(Configuration);Platform=x86;Version=$(CurrentBuildVersion);ArtifactsBinPath=$(ArtifactsBinDir);ArtifactsPublishPath=$(AppPublishDir);OutputPath=$(_PublishMsiPath.TrimEnd('\'));TargetName=$(_PublishMsiFileName)"
         StopOnFirstFailure="true"
         />
   </Target>
 
 </Project>
-<!-- 
-/p:Version=4.0.0.0 /p:NumericVersion=4.0.0.0 /p:Configuration=Debug /p:ArtifactsPublishPath=C:\Development\gitextensions\artifacts\publish\Debug\GitExtensions /p:ArtifactsBinPath=C:\Development\gitextensions\artifacts\bin /t:Rebuild /v:m Setup.wixproj -->

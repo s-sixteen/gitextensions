@@ -69,6 +69,7 @@ after_test:
 artifacts:
   - path: artifacts\log\**\*.binlog
   - path: artifacts\publish\*.zip
+  - path: artifacts\publish\*.msi
 #  # upload the generated portable archive only
 #  - path: 'Setup/GitExtensions-Portable-*.zip'
 #  - path: 'Setup/GitExtensions-pdbs-*.zip'
