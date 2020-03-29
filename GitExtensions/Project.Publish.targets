@@ -142,6 +142,7 @@
 
     <MSBuild 
         Projects="$(ProjectDir)\..\Setup\Setup.wixproj"
+        Targets="Build"
         Properties="Configuration=$(Configuration);Platform=x86;Version=$(CurrentBuildVersion);ArtifactsBinPath=$(ArtifactsBinDir);ArtifactsPublishPath=$(AppPublishDir);OutputPath=$(_PublishMsiPath.TrimEnd('\'));TargetName=$(_PublishMsiFileName)"
         StopOnFirstFailure="true"
         />

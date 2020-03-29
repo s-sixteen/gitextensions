@@ -25,6 +25,7 @@
     <NUnitTestAdapterVersion Condition="'$(NUnitTestAdapterVersion)' == ''">3.16.1</NUnitTestAdapterVersion>
 
     <VSWhereVersion Condition="'$(VSWhereVersion)' == ''">2.6.7</VSWhereVersion>
+    <WiXVersion Condition="'$(WiXVersion)' == ''">3.11.0</WiXVersion>
   </PropertyGroup>
 
 </Project>
