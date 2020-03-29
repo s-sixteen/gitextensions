@@ -58,7 +58,7 @@
     -->
   <Target Name="CreatePortable" AfterTargets="Publish" DependsOnTargets="_RetrieveCurrentBuildVersion;_PublishTranslations;_PublishExtraDependecies">
     <PropertyGroup>
-      <_AppPPluginsublishDir>$([MSBuild]::NormalizeDirectory('$(AppPublishDir)', 'Plugins'))</_AppPPluginsublishDir>
+      <_AppPluginsPublishDir>$([MSBuild]::NormalizeDirectory('$(AppPublishDir)', 'Plugins'))</_AppPluginsPublishDir>
 
       <!-- Resolve app.config, so we can set/unset "portable" flag -->
       <_PublishAppConfig>$([System.IO.Path]::GetFileName('$(TargetAppConfig)'))</_PublishAppConfig>
@@ -79,13 +79,32 @@
     <_GetPluginAssembliesCodeTask
           Solution="$(SolutionPath)"
           IsContinuousIntegrationBuild="$(ContinuousIntegrationBuild)">
-      <Output ItemName="PluginAssemblies" TaskParameter="Output"/>
+      <Output ItemName="CollectedPluginAssemblies" TaskParameter="Output"/>
     </_GetPluginAssembliesCodeTask>
+
+    <ItemGroup>
+      <PluginAssemblies Include="@(CollectedPluginAssemblies)" />
+      <PluginAssemblies Remove="@(PluginAssemblies)" Condition="$([System.String]::Copy('%(Filename)').EndsWith('.resources'))" />
+
+      <PluginResourcesAssemblies Include="@(CollectedPluginAssemblies)" />
+      <PluginResourcesAssemblies Remove="@(PluginResourcesAssemblies)" Condition="!$([System.String]::Copy('%(Filename)').EndsWith('.resources'))" />
+      <PluginResourcesAssemblies>
+        <DestinationFiles>$([System.String]::Copy('%(Identity)').Replace('%(BasePath)', '$(_AppPluginsPublishDir)'))</DestinationFiles>
+      </PluginResourcesAssemblies>
+          
+    </ItemGroup>
+
+    <Message Text="@(PluginResourcesAssemblies->'%(DestinationFiles)')" Importance="high" />
 
     <!-- ...and copy them into Plugins folder -->
     <Copy
           SourceFiles="@(PluginAssemblies)"
-          DestinationFolder="$(_AppPPluginsublishDir)"
+          DestinationFolder="$(_AppPluginsPublishDir)"
+        />
+    <!-- ...and copy them into Plugins folder -->
+    <Copy
+          SourceFiles="@(PluginResourcesAssemblies)"
+          DestinationFiles="@(PluginResourcesAssemblies->'%(DestinationFiles)')"
         />
 
     <!-- Mark the package as "portable" -->
@@ -111,7 +130,7 @@
     Creates an MSI.
     ============================================================
     -->
-  <Target Name="CreateMsi" AfterTargets="CreatePortable">
+  <Target Name="CreateMsi" AfterTargets="CreatePortable1">
     <MSBuild 
         Projects="$(ProjectDir)\..\Setup\Setup.wixproj"
         Properties="Configuration=$(Configuration);Platform=x86;Version=$(Version);ArtifactsBinPath=$(ArtifactsBinDir);ArtifactsPublishPath=$(AppPublishDir)"
