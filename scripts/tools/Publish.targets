@@ -4,7 +4,8 @@
 
   <UsingTask TaskName="_GetPluginAssembliesCodeTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
     <ParameterGroup>
-      <Solution ParameterType="System.String" Required="true"/>
+      <SolutionPath ParameterType="System.String" Required="true"/>
+      <BuildConfiguration ParameterType="System.String" Required="true"/>
       <IsContinuousIntegrationBuild ParameterType="System.String" Required="true"/>
       <Output ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true"/>
     </ParameterGroup>
@@ -15,12 +16,13 @@
       <Using Namespace="Microsoft.Build.Evaluation"/>
       <Code Type="Fragment" Language="cs">
         <![CDATA[
-        var _solutionFile = SolutionFile.Parse(Solution); 
+        var _solutionFile = SolutionFile.Parse(SolutionPath); 
         Output = _solutionFile.ProjectsInOrder
             .Where(proj => proj.ProjectType == SolutionProjectType.KnownToBeMSBuildFormat)
             .SelectMany(proj => 
                         {
                             var project = new Project(proj.AbsolutePath);
+                            project.SetGlobalProperty("Configuration", BuildConfiguration);
                             project.SetGlobalProperty("ContinuousIntegrationBuild", IsContinuousIntegrationBuild);
                             project.ReevaluateIfNecessary();
 

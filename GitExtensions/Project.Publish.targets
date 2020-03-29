@@ -77,7 +77,8 @@
 
     <!-- Determine plugins assemblies and their required references -->
     <_GetPluginAssembliesCodeTask
-          Solution="$(SolutionPath)"
+          SolutionPath="$(SolutionPath)"
+          BuildConfiguration="$(Configuration)"
           IsContinuousIntegrationBuild="$(ContinuousIntegrationBuild)">
       <Output ItemName="CollectedPluginAssemblies" TaskParameter="Output"/>
     </_GetPluginAssembliesCodeTask>

@@ -1,6 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
-  <Import Project="..\packages\WiX.3.11.0\build\wix.props" Condition="Exists('..\packages\WiX.3.11.0\build\wix.props')" />
+  <PropertyGroup>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+  </PropertyGroup>
+
+  <Import Project="$(NuGetPackageRoot)\WiX\3.11.0\build\wix.props" />
 
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -23,6 +27,10 @@
     <DefineConstants Condition=" '$(Configuration)' == 'Debug' ">Debug;$(DefineConstants)</DefineConstants>
     <SuppressIces>ICE61;ICE80;ICE91;ICE38</SuppressIces>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WiX" Version="3.11.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Product.wxs" />
@@ -72,13 +80,13 @@
     <Folder Include="UI" />
   </ItemGroup>
 
-  <Import Project="$(WixTargetsPath)" Condition="Exists('$(WixTargetsPath)')" />
+  <Import Project="$(WixTargetsPath)" />
 
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\WiX.3.11.0\build\wix.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WiX.3.11.0\build\wix.props'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)\WiX\3.11.0\build\wix.props')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)\WiX\3.11.00\build\wix.props'))" />
   </Target>
 
   <Target Name="DownloadPluginManager" BeforeTargets="BeforeBuild">
