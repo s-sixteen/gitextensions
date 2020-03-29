@@ -83,25 +83,25 @@
     </_GetPluginAssembliesCodeTask>
 
     <ItemGroup>
+      <!-- Collect plugin and their direct reference -->
       <PluginAssemblies Include="@(CollectedPluginAssemblies)" />
       <PluginAssemblies Remove="@(PluginAssemblies)" Condition="$([System.String]::Copy('%(Filename)').EndsWith('.resources'))" />
 
+      <!-- Collect resources for plugins -->
       <PluginResourcesAssemblies Include="@(CollectedPluginAssemblies)" />
       <PluginResourcesAssemblies Remove="@(PluginResourcesAssemblies)" Condition="!$([System.String]::Copy('%(Filename)').EndsWith('.resources'))" />
+      <!-- Resources must leave in own folders, so replace the base path with the plugins target folder -->
       <PluginResourcesAssemblies>
         <DestinationFiles>$([System.String]::Copy('%(Identity)').Replace('%(BasePath)', '$(_AppPluginsPublishDir)'))</DestinationFiles>
       </PluginResourcesAssemblies>
-          
     </ItemGroup>
 
-    <Message Text="@(PluginResourcesAssemblies->'%(DestinationFiles)')" Importance="high" />
-
-    <!-- ...and copy them into Plugins folder -->
+    <!-- Copy the plugins to the Plugins folder -->
     <Copy
           SourceFiles="@(PluginAssemblies)"
           DestinationFolder="$(_AppPluginsPublishDir)"
         />
-    <!-- ...and copy them into Plugins folder -->
+    <!-- Copy the plugins' resources to the Plugins folder -->
     <Copy
           SourceFiles="@(PluginResourcesAssemblies)"
           DestinationFiles="@(PluginResourcesAssemblies->'%(DestinationFiles)')"
@@ -130,7 +130,7 @@
     Creates an MSI.
     ============================================================
     -->
-  <Target Name="CreateMsi" AfterTargets="CreatePortable1">
+  <Target Name="CreateMsi" AfterTargets="CreatePortable">
     <MSBuild 
         Projects="$(ProjectDir)\..\Setup\Setup.wixproj"
         Properties="Configuration=$(Configuration);Platform=x86;Version=$(Version);ArtifactsBinPath=$(ArtifactsBinDir);ArtifactsPublishPath=$(AppPublishDir)"
